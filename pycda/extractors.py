@@ -78,7 +78,6 @@ class CircleExtractor(ExtractorBaseClass):
                 break
             objects.append(result)
             idx += 1
-        print('Found {} objects in image.'.format(len(objects)))
         return objects
 
     def get_crater_proposals(self, detection_map):

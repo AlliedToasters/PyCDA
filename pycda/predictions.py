@@ -30,9 +30,12 @@ class Prediction(object):
         self.detection_map = np.zeros((self.input_image.shape[0], self.input_image.shape[1]))
         #proposals will be stored here.
         self.proposals = pd.DataFrame(columns=['x', 'y', 'diameter', 'likelihood'])
-        #optional latitude/longitude attribute if user wants to
-        #specify position of image
-        self.lat_long = None
+        #threshold is a likelihood value below which proposals
+        #are rejected. Lowering this value will include more proposals
+        #in prediction, while raising it while be more selective.
+        self.threshold = .5
+        #add ground truth labels for errors module
+        self.known_craters = pd.DataFrame(columns=['x', 'y', 'diameter'])
         #optional scale if user wants metric crater sizes
         self.scale = None
         

@@ -158,7 +158,18 @@ class CDA(object):
         prediction = self._prepare_detector(prediction)
         prediction = self._batch_detect(prediction)
         prediction.proposals = self.extractor(prediction.detection_map)
+
+        print(
+            len(prediction.proposals), 
+            ' proposals extracted from detection map.'
+        )
+
         prediction = self._batch_classify(prediction)
+        print(
+            np.where(prediction.proposals.likelihood > prediction.threshold, 1, 0).sum(),
+            ' objects classified as craters.'
+        )
+
         return prediction
     
     def predict(self, input_image, threshold=.5):
@@ -184,3 +195,4 @@ def load_image(filename):
     except AssertionError:
         raise Exception('Could not load file into numpy array.')
     return image
+

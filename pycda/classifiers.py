@@ -1,4 +1,5 @@
 import numpy as np
+import pkg_resources
 
 class ClassifierBaseClass(object):
     """Base object for crater classifier. Classifiers
@@ -70,7 +71,8 @@ class ConvolutionalClassifier(ClassifierBaseClass):
     def __init__(self):
         import tensorflow as tf
         from keras.models import load_model
-        self.model = load_model('./models/classifier_12x12_2.h5')
+        path = pkg_resources.resource_filename('pycda', 'models/classifier_12x12_2.h5')
+        self.model = load_model(path)
         self.input_dims = (12, 12)
         self.crater_pixels = 4
         self.input_channels = 1

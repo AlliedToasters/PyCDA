@@ -1,4 +1,5 @@
 import numpy as np
+import pkg_resources
 
 class DetectorBaseClass(object):
     """This is the base class for a detector object.
@@ -71,12 +72,36 @@ class UnetDetector(DetectorBaseClass):
         #small batches due to high memory requirements.
         self.rec_batch_size = 3
         self.prediction_type = 'pixel-wise'
-        self.model = load_model('./models/unet_light_model.h5')
+        path = pkg_resources.resource_filename('pycda', 'models/unet_light_model.h5')
+        self.model = load_model(path)
         
     def predict(self, batch):
         """returns a batch of random-pixel images with appropriate shape."""
         return self.model.predict(batch)
         
+class TinyDetector(DetectorBaseClass):
+    """A tiny version of U-Net downsized for speed. 
+    Its output is a per-pixel likelihood that
+    a given pixel is a part of a crater surface feature.
+    Single color channel (grayscale).
+    """
+    def __init__(self):
+        import tensorflow as tf
+        from keras.models import load_model
+        self.input_dims = (256, 256)
+        #one color channel; greyscale
+        self.input_channels = 1
+        self.output_dims = (172, 172)
+        self.in_out_map = 'center'
+        #small batches due to high memory requirements.
+        self.rec_batch_size = 12
+        self.prediction_type = 'pixel-wise'
+        path = pkg_resources.resource_filename('pycda', 'models/tinynet.h5')
+        self.model = load_model(path)
+        
+    def predict(self, batch):
+        """returns a batch of random-pixel images with appropriate shape."""
+        return self.model.predict(batch)
 
         
 def get(identifier):
