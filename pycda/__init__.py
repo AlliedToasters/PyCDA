@@ -16,7 +16,7 @@ class CDA(object):
     object that tracks the outputs of the various models throughout
     the process.
     """
-    def __init__(self, detector='tiny', extractor='circle', classifier='convolution'):
+    def __init__(self, detector='tiny', extractor='fast_circle', classifier='convolution'):
         """To initialize the CDA, you must define a detector, extractor, and
         classifier. You can pass these in as arguments or use text aliases
         to specify.
