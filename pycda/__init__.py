@@ -1,10 +1,13 @@
 import numpy as np
 from skimage import io
+from PIL import Image
+import gc
 from pycda import detectors
 from pycda import extractors
 from pycda import classifiers
 from pycda import predictions
 from pycda import util_functions
+from pycda.util_functions import update_progress
 
 class CDA(object):
     """the CDA class is a pipeline that makes predictions
@@ -13,7 +16,7 @@ class CDA(object):
     object that tracks the outputs of the various models throughout
     the process.
     """
-    def __init__(self, detector='unet', extractor='circle', classifier='convolution'):
+    def __init__(self, detector='tiny', extractor='circle', classifier='convolution'):
         """To initialize the CDA, you must define a detector, extractor, and
         classifier. You can pass these in as arguments or use text aliases
         to specify.
@@ -42,6 +45,8 @@ class CDA(object):
         """Gets prediction object ready for use by
         the detector by populating coordinate lists.
         """
+        if prediction.verbose:
+            print('Preparing detection steps...')
         width = prediction.input_image.shape[1]
         xin = self.detector.input_dims[1]
         xout = self.detector.output_dims[1]
@@ -61,6 +66,8 @@ class CDA(object):
                 
         #set all predictions status to False
         prediction.detections_made = np.full((len(prediction.tile_split_coords)), False, dtype=bool)
+        if prediction.verbose:
+            print('Done!\nDetection will require {} steps'.format(len(prediction.detections_made)))
         return prediction
     
     def _batch_detect(self, prediction, batch_size=None):
@@ -80,6 +87,8 @@ class CDA(object):
         #rescale color values for model if necessary
         if image.dtype == np.uint8:
             image = image/255
+        if prediction.verbose:
+            print('performing detections...')
         while any(~prediction.detections_made):
             batch = []
             first_index = prediction.detections_made.sum()
@@ -87,6 +96,10 @@ class CDA(object):
             last_index = min(first_index+batch_size, first_index+remaining_predictions)
             indices = range(first_index, last_index)
             for index in indices:
+                if prediction.verbose:
+                    progress = index
+                    progress = progress/len(prediction.detections_made)
+                    update_progress(progress)
                 crop_coords = prediction.tile_split_coords[index]
                 crop_dims = self.detector.input_dims
                 next_image = util_functions.crop_array(image, crop_dims[0], crop_dims[1], crop_coords)
@@ -104,6 +117,8 @@ class CDA(object):
                 batch_index += 1
         #delete temporary image from memory
         del image
+        if prediction.verbose:
+            update_progress(1.)
         return prediction
     
     def _batch_classify(self, prediction, batch_size=None):
@@ -124,6 +139,8 @@ class CDA(object):
         crop_dims = self.classifier.input_dims
         crater_size = self.classifier.crater_pixels
         #Will switch when iteration is through
+        if prediction.verbose:
+            print('Performing classifications...')
         done = False
         while not done:
             #will become our batch
@@ -134,6 +151,9 @@ class CDA(object):
                 except StopIteration:
                     done = True
                     break
+                if prediction.verbose:
+                    progress = i/len(df)
+                    update_progress(progress)
                 proposal = row[['x', 'y', 'diameter']].values
                 cropped = util_functions.crop_crater(image, proposal, dim=crop_dims, px=crater_size)
                 if len(cropped.shape) == 2:
@@ -141,50 +161,100 @@ class CDA(object):
                 batch.append(cropped)
             batch = np.array(batch)
             results = self.classifier.predict(batch)
-            likelihoods += [result for result in results]
+            likelihoods += [result[0] for result in results]
         prediction.proposals['likelihood'] = likelihoods
         #delete temporary image from memory
         del image
+        if prediction.verbose:
+            update_progress(1.)
+            print('\n')
         return prediction
 
-    def _predict(self, input_image):
+    def _predict(self, input_image, verbose=False):
         """Calls a series of functions to perform prediction on input
         image. Returns a prediction object.
         """
+        if isinstance(input_image, CDAImage):
+            input_image = input_image.as_array()
+        elif isinstance(input_image, type(np.array([0]))):
+            pass
+        else:
+            input_image = np.array(input_image)
         prediction = self._get_prediction(input_image)
+        prediction.verbose = verbose
         if np.all(prediction.detections_made):
-            print('prediction already made! returning...')
+            if verbose:
+                print('prediction already made! returning...')
             return prediction
         prediction = self._prepare_detector(prediction)
         prediction = self._batch_detect(prediction)
-        prediction.proposals = self.extractor(prediction.detection_map)
-
-        print(
-            len(prediction.proposals), 
-            ' proposals extracted from detection map.'
-        )
-
+        prediction.proposals = self.extractor(prediction.detection_map, verbose=verbose)
+        if verbose:
+            print(
+                len(prediction.proposals), 
+                ' proposals extracted from detection map.\n'
+            )
         prediction = self._batch_classify(prediction)
-        print(
-            np.where(prediction.proposals.likelihood > prediction.threshold, 1, 0).sum(),
-            ' objects classified as craters.'
-        )
-
+        if verbose:
+            print(
+                np.where(prediction.proposals.likelihood > prediction.threshold, 1, 0).sum(),
+                ' objects classified as craters.\n'
+            )
         return prediction
     
-    def predict(self, input_image, threshold=.5):
+    def predict(self, input_image, threshold=.5, verbose=False):
         """Intended for 'out of box' use. Calls predictions
         and returns a pandas dataframe with crater predictions.
         """
         prediction = self._predict(input_image)
-        return prediction.get_proposals(threshold=threshold)
+        return prediction.get_proposals(threshold=threshold, verbose=verbose)
     
-    def get_prediction(self, input_image):
+    def get_prediction(self, input_image, verbose=False):
         """Used for accessing the prediction object.
         Calls predictions and returns the prediction
         object for advanced statistics and visualizations.
         """
-        return self._predict(input_image)
+        return self._predict(input_image, verbose=verbose)
+    
+class CDAImage(object):
+    """Special image object for CDA. Just a PIL image object
+    that returns an array version when needed
+    """
+    def __init__(self, image):
+        #Common use case: convert from array to PIL image
+        if isinstance(image, type(np.array([0]))):
+            self.image = Image.fromarray(image)
+        #In case another CDAImage object passed in
+        elif isinstance(image, type(self)):
+            self.image = image.image
+        #In case PIL image passed in
+        elif isinstance(image, type(Image.new('1', (1,1)))):
+            self.image = image
+        else:
+            raise Exception('Image object constructor does not'
+                            ' understand input image type.')
+     
+    def show(self, size='reasonable'):
+        """Displays the input image using PIL image object"""
+        if size == 'reasonable':
+            input_x, input_y = self.image.size
+            if input_x > 600:
+                output_x = 600
+            else:
+                output_x = input_x
+            if input_y > 600:
+                output_y = 600
+            else:
+                output_x = input_x
+            image = self.image.resize((output_x, output_y))
+        else:
+            image = self.image
+        image.show()
+        return
+    
+    def as_array(self):
+        """If array version of image is needed."""
+        return np.array(self.image)
     
 def load_image(filename):
     """load an image from input filepath and return
@@ -194,5 +264,5 @@ def load_image(filename):
         assert isinstance(image, type(np.array([0])))
     except AssertionError:
         raise Exception('Could not load file into numpy array.')
-    return image
+    return CDAImage(image)
 

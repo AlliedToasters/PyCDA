@@ -93,7 +93,7 @@ class TinyDetector(DetectorBaseClass):
         self.input_channels = 1
         self.output_dims = (172, 172)
         self.in_out_map = 'center'
-        #small batches due to high memory requirements.
+        #bigger batches due to smaller model size
         self.rec_batch_size = 12
         self.prediction_type = 'pixel-wise'
         path = pkg_resources.resource_filename('pycda', 'models/tinynet.h5')
@@ -103,6 +103,35 @@ class TinyDetector(DetectorBaseClass):
         """returns a batch of random-pixel images with appropriate shape."""
         return self.model.predict(batch)
 
+class CustomDetector(DetectorBaseClass):
+    """This class allows a user to load a custom detection
+    model into PyCDA. PyCDA will automatically detect input
+    and output dimensions. All models are channels-last;
+    channels-first is not currently supported.
+    You should specify recommended batch size.
+    (if not specified, set to 1.)
+    """
+    def __init__(self, model_path, rec_batch_size = 1, in_out_map = 'center'):
+        import tensorflow as tf
+        from keras.models import load_model
+        self.model = load_model(model_path)
+        #Get input shape from input layer
+        input_layer = self.model.layers[0]
+        self.input_dims = input_layer.input_shape[1:3]
+        #Get color channels
+        self.input_channels = input_layer.input_shape[3]
+        #Get output dimensions
+        output_layer = self.model.layers[-1]
+        self.output_dims = output_layer.output_shape[1:3]
+        
+        self.rec_batch_size = rec_batch_size
+        self.in_out_map = in_out_map
+        self.prediction_type = 'pixel-wise'
+        
+    def predict(self, batch):
+        """returns a batch of random-pixel images with appropriate shape."""
+        return self.model.predict(batch)
+    
         
 def get(identifier):
     """handles argument to CDA pipeline for detector specification.
@@ -110,7 +139,8 @@ def get(identifier):
     """
     model_dictionary = {
         'dummy': DummyDetector,
-        'unet': UnetDetector
+        'unet': UnetDetector,
+        'tiny': TinyDetector
     }
     if identifier is None:
         raise Exception('You must specify a detector model.')

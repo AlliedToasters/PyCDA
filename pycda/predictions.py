@@ -17,6 +17,7 @@ class Prediction(object):
         self.input_image = image
         self.__name__ = 'prediction_{}'.format(id_no)
         self.cda = cda
+        self.verbose=False
         #tile_split_coords is a list of (x, y) coordinates
         #that map to every split necessary for the detector
         self.tile_split_coords = []
@@ -97,8 +98,7 @@ class Prediction(object):
         plt.show();
         
     def show_detection(self):
-        """Plots the detection map alongside the input image.
-        """
+        """Plots the detection map alongside the input image."""
         fig, ax = plt.subplots(ncols=2, figsize=(12, 8))
         if self.input_image.shape==2:
             cmap1 = 'Greys'
@@ -107,4 +107,18 @@ class Prediction(object):
             ax[0].imshow(self.input_image)
         ax[1].imshow(self.detection_map)
         plt.show();
+        
+    def to_csv(self, filepath, likelihoods=False, index=False):
+        """Creates a csv file with predictions. If likelihoods
+        is True, a likelihoods column is added to the csv file.
+        Saves csv to filepath usind pd.to_csv method."""
+        if len(self.proposals) == 0:
+            print('Cannot export csv. No predictions made!')
+            return
+        df = self.proposals
+        if not likelihoods:
+            df = df[['x', 'y', 'diameter']]
+        df.to_csv(filepath, index=index)
+        return
+        
             

@@ -30,13 +30,16 @@ class ErrorAnalyzer(object):
         self.prediction_object = None
         pass
 
-    def _match_predictions(self, prop, known):
+    def _match_predictions(self, prop, known, verbose=True):
         """Uses nearest neighbors algorithm to match
         known craters to proposals.
         """
         threshold = self.prediction_object.threshold
+        #Will search through ten nearest proposals
+        #unless there are fewer than ten.
+        kn = min(10, len(prop))
         nnb_search = NearestNeighbors(  
-            n_neighbors=10, 
+            n_neighbors=kn, 
             algorithm='ball_tree', 
             metric='l2'
         )
@@ -46,9 +49,9 @@ class ErrorAnalyzer(object):
 
         #will keep results organized
         results = known.copy()
-        cols1 = ['neighbor{}'.format(n) for n in range(10)]
+        cols1 = ['neighbor{}'.format(n) for n in range(kn)]
         distances = pd.DataFrame(columns = cols1, data=distances)
-        cols2 = ['id{}'.format(n) for n in range(10)]
+        cols2 = ['id{}'.format(n) for n in range(kn)]
         ids = pd.DataFrame(columns = cols2, data=indices)
         results = pd.concat([results, distances, ids], axis=1)
 
@@ -65,7 +68,7 @@ class ErrorAnalyzer(object):
         prop_copy['positive'] = False
 
         #iterate over neighbors, starting with nearest
-        for n in range(10):
+        for n in range(kn):
             results_col = 'neighbor{}'.format(n)
             prop_col = 'id{}'.format(n)
             #order by vicinity and iterate in ascending order
@@ -81,25 +84,33 @@ class ErrorAnalyzer(object):
                         known_copy.at[i, 'detected'] = True
                         prop_copy.at[prop_id, 'positive'] = True
         
-        print('found {} proposals to be true.'.format(len(prop_copy[prop_copy['positive']])))
-        print('found {} craters to be detected.'.format(len(known_copy[known_copy['detected']])))
+        if verbose:
+            print('found {} proposals to be true.'.format(len(prop_copy[prop_copy['positive']])))
+            print('found {} craters to be detected.'.format(len(known_copy[known_copy['detected']])))
         return prop_copy, known_copy
 
+    def compute_results(self):
+        """Computes descriptive statistics about model performance.
+        """
+        if not self.done:
+            print('No results to compute!')
+            return None
+        self.tp = len(self.predicted[self.predicted.positive])
+        self.fp = len(self.predicted) - self.tp
+        self.fn = len(self.known) - len(self.known[self.known.detected])
+        self.D = 100 * self.tp/(self.tp + self.fn)
+        try:
+            self.B = self.fp/self.tp
+        except ZeroDivisionError:
+            self.B = self.fp/.00001
+        self.Q = 100 * self.tp / (self.tp + self.fp + self.fn)
+        return None
+        
     def print_report(self):
         """Prints performance statistics for prediction."""
         if not self.done:
             print('Call .analyze() on a prediction to get stats.')
             return None
-        self.tp = len(self.predicted[self.predicted.positive])
-        self.fp = len(self.predicted) - self.tp
-        self.fn = len(self.known) - len(self.known[self.known.detected])
-        self.done = True
-        self.D = 100 * self.tp/(self.tp + self.fn)
-        try:
-            self.B = self.fp/self.tp
-        except ZeroDivisionError:
-            self.B = 99999
-        self.Q = 100 * self.tp / (self.tp + self.fp + self.fn)
         print('='*50)
         print('\nDetection Percentage: %{}'.format(self.D), '\n')
         print('\nBranching Factor: ', self.B, '\n')
@@ -108,7 +119,7 @@ class ErrorAnalyzer(object):
         return
     
 
-    def analyze(self, prediction):
+    def analyze(self, prediction, verbose=True):
         """Takes a prediction object and performs analysis on it.
         Raises an exception if no known crater labels are attributed
         to the input prediction object.
@@ -130,6 +141,15 @@ class ErrorAnalyzer(object):
             craters = df
         elif isinstance(prediction.known_craters, type(pd.DataFrame())):
             craters = prediction.known_craters
+            cols = craters.columns
+            #attempts to format unlabeled/poorly labeled dataframe
+            if 'x' not in cols or 'y' not in cols or 'diameters' not in cols:
+                if verbose:
+                    print('Warning: crater annotations not properly labeled. '
+                          'If there is a problem, please reorder crater annotations '
+                          'as: x position, y position, crater diameter (pixels) '
+                          'and label columns in pandas dataframe.')
+                craters.columns = ['x', 'y', 'diameter']
         else:
             raise Exception('Sorry, labeled craters datatype is not understood. '
                             'Please populate the prediction object '
@@ -138,14 +158,18 @@ class ErrorAnalyzer(object):
         self.prediction_object = prediction
         self.predicted, self.known = self._match_predictions(
                                         prediction.proposals,
-                                        craters
+                                        craters,
+                                        verbose=verbose
         )
-        print('Matching complete!\n')
+        if verbose:
+            print('Matching complete!\n')
         self.done = True
-        self.print_report()
+        self.compute_results()
+        if verbose:
+            self.print_report()
         return
 
-    def plot_densities(self):
+    def plot_densities(self, verbose=True):
         """Generates histogram plot with predicted and actual
         crater densities by size."""
         predictions = self.predicted[self.predicted.likelihood > self.prediction_object.threshold]
@@ -159,8 +183,9 @@ class ErrorAnalyzer(object):
         ax.set_ylabel('density over image area');
         plt.legend();
         plt.show();
-        print('known crater count in image: ', len(self.known))
-        print('detected crater count in image: ', len(predictions))
+        if verbose:
+            print('known crater count in image: ', len(self.known))
+            print('detected crater count in image: ', len(predictions))
         return predictions
         
     def show(self):
@@ -205,8 +230,10 @@ class ErrorAnalyzer(object):
     def return_results(self):
         """Returns matched lists of known craters and detections."""
         return self.predicted, self.known
-
-    
+   
+        
+        
+            
         
 
         

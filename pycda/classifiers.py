@@ -82,6 +82,32 @@ class ConvolutionalClassifier(ClassifierBaseClass):
         """Performs prediction on batch."""
         return self.model.predict(batch)
         
+class CustomClassifier(ClassifierBaseClass):
+    """This class allows a user to load a custom classifier
+    into PyCDA. PyCDA will automatically detect input
+    dimensions. Provide crater_size, the number of pixels
+    the crater candidate diameter should occupy in the 
+    cropped image. All models are channels-last;
+    channels-first is not currently supported.
+    You should specify recommended batch size.
+    (if not specified, set to 24.)
+    """
+    
+    def __init__(self, model_path, crater_pixels, rec_batch_size = 24):
+        import tensorflow as tf
+        from keras.models import load_model
+        self.model = load_model(model_path)
+        #Get input shape from input layer
+        input_layer = self.model.layers[0]
+        self.input_dims = input_layer.input_shape[1:3]
+        #Get color channels
+        self.input_channels = input_layer.input_shape[3]
+        self.crater_pixels = crater_pixels
+        self.rec_batch_size = rec_batch_size
+        
+    def predict(self, batch):
+        """Performs prediction on batch."""
+        return self.model.predict(batch)   
         
 def get(identifier):
     """handles argument to CDA pipeline for classifier specification.
