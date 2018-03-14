@@ -6,7 +6,7 @@ from pycda.detectors import DummyDetector
 from pycda.extractors import DummyExtractor
 from pycda.classifiers import DummyClassifier, ConvolutionalClassifier
 from pycda.sample_data import get_sample_image, get_sample_csv
-from pycda.util_functions import get_steps, crop_array
+from pycda.util_functions import get_steps, crop_array, make_batch
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -41,6 +41,25 @@ class TestUtilFuncs(unittest.TestCase):
         assert np.array_equal(test4[10:, 10:], np.zeros((90, 10)))
         assert np.array_equal(test4[:10, :10], test_image[140:, 190:])
         
+    def test_make_batch(self):
+        img_height = np.random.randint(200, 1000)
+        img_width = np.random.randint(200, 1000)
+        test_image = np.random.rand(img_height, img_width)
+        shape = test_image.shape
+        height, width = shape[0], shape[1]
+        in1 = np.random.randint(2, height)
+        in2 = np.random.randint(2, width)
+        crops = [
+            (0, 0),
+            (1, 1),
+            (2, 2)
+        ]
+        try:
+            batch = make_batch(test_image, (in1, in2), crops)
+        except:
+            print('problem batch out dimensions: ', in1, in2)
+            raise Exception('Problem building batch.')
+        assert batch.shape == (3, in1, in2, 1)
 
 class TestImageFlow(unittest.TestCase):
     
@@ -84,23 +103,6 @@ class TestImageFlow(unittest.TestCase):
         except AssertionError:
             print('input img dims: ', self.test_image.shape)
             raise AssertionError()
-            
-    def test_make_batch(self):
-        shape = self.test_image.shape
-        height, width = shape[0], shape[1]
-        in1 = np.random.randint(2, height)
-        in2 = np.random.randint(2, width)
-        crops = [
-            (0, 0),
-            (1, 1),
-            (2, 2)
-        ]
-        try:
-            batch = self.cda._make_batch(self.test_image, (in1, in2), crops)
-        except:
-            print('problem batch out dimensions: ', in1, in2)
-            raise Exception('Problem building batch.')
-        assert batch.shape == (3, in1, in2, 1)
         
     def test_batch_detect(self):
         batch_size = np.random.randint(1, 5)
