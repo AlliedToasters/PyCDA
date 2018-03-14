@@ -1,3 +1,4 @@
 pycda.egg-info
 pycda/__pycache__
+.ipynb_checkpoints
 sandbox.ipynb
