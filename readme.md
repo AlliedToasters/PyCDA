@@ -11,11 +11,11 @@ At its most basic level, PyCDA is built to be <I>easy to use</I>, and that shoul
 
 ### Prerequisites
 
-PyCDA currently supports Python 3.6; we recommend using a virtual environment or environment manager such as <a href='https://conda.io/docs/user-guide/install/index.html#regular-installation'>conda</a>, as PyCDA has not been tested on other versions of its dependencies.
+PyCDA currently supports Python 3.6; we recommend using a virtual environment or environment manager such as <a href='https://conda.io/docs/user-guide/install/index.html#regular-installation'>conda</a>, as PyCDA has not been tested on previous versions of its dependencies.
 
 ### Installing
 
-In your python 3.6 environment, go to to the root directory of PyCDA. Run
+Clone this repository. In your python 3.6 environment, go to to the root directory of PyCDA. Run
 
 ```
 pip install -r requirements.txt
