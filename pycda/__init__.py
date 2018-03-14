@@ -9,7 +9,7 @@ from pycda import extractors
 from pycda import classifiers
 from pycda import predictions
 from pycda import util_functions
-from pycda.util_functions import update_progress, resolve_color_channels, get_steps, get_crop_specs, crop_array, remove_ticks
+from pycda.util_functions import update_progress, resolve_color_channels, get_steps, get_crop_specs, crop_array, remove_ticks, make_batch
 
 class CDA(object):
     """the CDA class is a pipeline that makes predictions
@@ -79,27 +79,6 @@ class CDA(object):
             print('Done!\nDetection will require {} steps'.format(len(prediction.detections_made)))
         return prediction
     
-    def _make_batch(self, image, crop_dims, crops, out_dims=None):
-        """Assembles a batch for model."""
-        if not isinstance(crop_dims, list):
-            crop_dims = [crop_dims for x in range(len(crops))]
-        batch = []
-        for i, crop_coords in enumerate(crops):
-            next_image = crop_array(image, crop_dims[i][0], crop_dims[i][1], crop_coords)
-            if out_dims != None:
-                if next_image.shape != out_dims:
-                    resized = Image.fromarray(next_image).resize((out_dims[1], out_dims[0]))
-                    next_image = np.array(resized)
-            if len(next_image.shape) == 2:
-                #add color channel to greyscale image
-                next_image = np.expand_dims(next_image, axis=-1)
-            if next_image.dtype == np.dtype('uint8'):
-                #Rescale pixel values
-                next_image = next_image/255
-            batch.append(next_image)
-        batch = np.array(batch)
-        return batch
-    
     def _batch_detect(self, prediction, batch_size=None, verbose=False):
         """Generates batches to feed to detector,
         gets detection maps, handles bookkeeping.
@@ -130,7 +109,7 @@ class CDA(object):
             #Get cropping coordinates
             crop_coords = prediction.image_split_coords[indices]
             #Build batch and predict
-            batch = self._make_batch(image, crop_dims, crop_coords)
+            batch = make_batch(image, crop_dims, crop_coords)
             results = self.detector.predict(batch)
             #Record detections to prediction object
             indices_enumerated = range(indices.start, indices.stop)
@@ -175,7 +154,7 @@ class CDA(object):
                 crop_orgn, crop_dim = get_crop_specs(proposal, self.classifier)
                 crops.append(crop_orgn)
                 crop_dims.append(crop_dim)
-            batch = self._make_batch(image, crop_dims, crops, out_dims=dim)
+            batch = make_batch(image, crop_dims, crops, out_dims=dim)
             results = self.classifier.predict(batch)
             likelihoods += [result[0] for result in results]
         prediction.proposals['likelihood'] = likelihoods

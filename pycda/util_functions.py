@@ -55,6 +55,27 @@ def crop_array(input_array, ylength, xlength=None, orgn=(0,0)):
     target[tp:(ylength-bp),lp:(xlength-rp)] = input_array[yslice, xslice]
     return target
 
+def make_batch(image, crop_dims, crops, out_dims=None):
+    """Assembles a batch for model."""
+    if not isinstance(crop_dims, list):
+        crop_dims = [crop_dims for x in range(len(crops))]
+    batch = []
+    for i, crop_coords in enumerate(crops):
+        next_image = crop_array(image, crop_dims[i][0], crop_dims[i][1], crop_coords)
+        if out_dims != None:
+            if next_image.shape != out_dims:
+                resized = Image.fromarray(next_image).resize((out_dims[1], out_dims[0]))
+                next_image = np.array(resized)
+        if len(next_image.shape) == 2:
+            #add color channel to greyscale image
+            next_image = np.expand_dims(next_image, axis=-1)
+        if next_image.dtype == np.dtype('uint8'):
+            #Rescale pixel values
+            next_image = next_image/255
+        batch.append(next_image)
+    batch = np.array(batch)
+    return batch
+
 def get_crop_specs(proposal, classifier):
     """Converts a crater proposal into cropping function
     arguments.
