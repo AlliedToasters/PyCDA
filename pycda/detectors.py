@@ -1,5 +1,6 @@
 import numpy as np
 import pkg_resources
+from pycda.util_functions import crop_array
 
 class DetectorBaseClass(object):
     """This is the base class for a detector object.
@@ -44,13 +45,16 @@ class DummyDetector(DetectorBaseClass):
     def predict(self, batch):
         """returns a batch of random-pixel images with appropriate shape."""
         try:
-            assert (batch.shape[2], batch.shape[1]) == self.input_dims
+            assert (batch.shape[1], batch.shape[2]) == self.input_dims
         except AssertionError:
             raise Exception('input image shape must match detector.input_dims')
-        batch_size = batch.shape[0]
         predictions = []
-        for i in range(batch_size):
-            prediction = np.random.rand(self.output_dims[0], self.output_dims[1])
+        ypadding = (self.input_dims[0] - self.output_dims[0])//2
+        xpadding = (self.input_dims[1] - self.output_dims[1])//2
+        for img in batch:
+            image = img[:, :, 0]
+            prediction = crop_array(image, self.output_dims[0], self.output_dims[1], orgn=(ypadding,xpadding))
+            #prediction = np.random.rand(self.output_dims[0], self.output_dims[1])
             prediction = np.expand_dims(prediction, axis=-1)
             predictions.append(prediction)
         return np.array(predictions)

@@ -20,54 +20,62 @@ def get_steps(length, input_dimension, output_dimension):
     while (steps[-1]+(2*step_size+padding)) < length:
         steps.append(current_step)
         current_step += step_size
-    #Situation with no overlap on final tile;
-    if current_step+step_size+padding == length:
+    #Situation with no overlap on final tile or small length;
+    if current_step+step_size+padding == length or length <= output_dimension:
         return steps, [step+padding-remainder for step in steps]
     else:
         final_step = length - step_size - padding - remainder
         steps.append(final_step)
         return steps, [step+padding for step in steps]
     
-def crop_array(input_array, xlength, ylength=None, orgn=(0,0)):
+def crop_array(input_array, ylength, xlength=None, orgn=(0,0)):
     """Crops an image in numpy array format. Pads crops outside
     of input image with zeros if necessary. If no y dimension
     is specified, outputs a square image.
     """
-    img = Image.fromarray(input_array)
-    if ylength == None:
-        ylength = xlength
-    xmin = orgn[1]
-    ymin = orgn[0]
-    xmax = xmin + xlength
-    ymax = ymin + ylength
-    cropped = img.crop((xmin, ymin, xmax, ymax))
-    return np.array(cropped)
+    if xlength == None:
+        xlength = ylength
+    ylength = int(ylength)
+    xlength = int(xlength)
+    orgn = (int(orgn[0]), int(orgn[1]))
+    target = np.zeros((ylength, xlength))
+    #slice ranges
+    ymin = max(orgn[0], 0)
+    xmin = max(orgn[1], 0)
+    ymax = min(orgn[0] + ylength, input_array.shape[0])
+    xmax = min(orgn[1] + xlength, input_array.shape[1])
+    yslice = slice(ymin, ymax)
+    xslice = slice(xmin, xmax)
+    #top, left, bottom, right pads
+    tp = max(-orgn[0], 0)
+    lp = max(-orgn[1], 0)
+    bp = max((ylength + orgn[0] - tp - input_array.shape[0]), 0)
+    rp = max((xlength + orgn[1] - lp - input_array.shape[1]), 0)
+    #insert slice into the right spot.
+    target[tp:(ylength-bp),lp:(xlength-rp)] = input_array[yslice, xslice]
+    return target
 
-def crop_crater(image, proposal, dim=(12, 12), px=4):
-    """Takes an input image of arbitrary size X, Y and a
-    proposal, which is a tuple (x, y, d) of a crater where
-    x < X and y < Y. Returns a cropped image of 
-    the proposal. The crater needs to be centered in the image.
+def get_crop_specs(proposal, classifier):
+    """Converts a crater proposal into cropping function
+    arguments.
     """
-    x = proposal[0] #Record x and y positions
-    y = proposal[1]
+    lat = proposal[0]
+    long = proposal[1]
+    px = classifier.crater_pixels
+    dim = classifier.input_dims
     #"Radius" of image
     r_im = proposal[2]*min(dim)/(2*px)
     #get four parameters of image box
-    left = x - r_im
-    upper = y - r_im
-    right = x + r_im
-    lower = y + r_im
-    img = Image.fromarray(image)
-    cropped = img.crop((left, upper, right, lower))
-    if cropped.size != dim:
-        cropped = cropped.resize(dim)
-    return np.array(cropped)
+    upper = lat - r_im
+    left = long - r_im
+    return (round(upper), round(left)), (round(2 * r_im), round(2 * r_im))
 
-def resolve_color_channels(image, desired=1):
+def resolve_color_channels(prediction, model):
     """Converts an image to the desired number of color
     channels. Returns converted image.
     """
+    image = prediction.input_image.copy()
+    desired = model.input_channels
     if len(image.shape) == 2:
         image_channels = 1
     else:
@@ -90,12 +98,12 @@ def remove_ticks(ax_obj):
     ax_obj.tick_params(
         axis='both', 
         which='both', 
-        bottom='off', 
-        top='off', 
-        labelbottom='off', 
-        right='off', 
-        left='off', 
-        labelleft='off'
+        bottom=False, 
+        top=False, 
+        labelbottom=False, 
+        right=False, 
+        left=False, 
+        labelleft=False
         )
     return ax_obj
 

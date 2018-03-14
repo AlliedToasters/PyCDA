@@ -18,9 +18,9 @@ class Prediction(object):
         self.__name__ = 'prediction_{}'.format(id_no)
         self.cda = cda
         self.verbose=False
-        #tile_split_coords is a list of (x, y) coordinates
+        #image_split_coords is a list of (x, y) coordinates
         #that map to every split necessary for the detector
-        self.tile_split_coords = []
+        self.image_split_coords = []
         #In the case that the detector output is different
         #from the input, destination coordinates for the output
         #are stored as det_split_coords
@@ -30,37 +30,46 @@ class Prediction(object):
         #prediction map will record the outputs of detector
         self.detection_map = np.zeros((self.input_image.shape[0], self.input_image.shape[1]))
         #proposals will be stored here.
-        self.proposals = pd.DataFrame(columns=['x', 'y', 'diameter', 'likelihood'])
+        self.proposals = pd.DataFrame(columns=['lat', 'long', 'diameter', 'likelihood'])
         #threshold is a likelihood value below which proposals
         #are rejected. Lowering this value will include more proposals
         #in prediction, while raising it while be more selective.
         self.threshold = .5
         #add ground truth labels for errors module
-        self.known_craters = pd.DataFrame(columns=['x', 'y', 'diameter'])
+        self.known_craters = pd.DataFrame(columns=['lat', 'long', 'diameter'])
         #optional scale if user wants metric crater sizes
         self.scale = None
         
     def __str__(self):
         return self.__name__
         
-    def record_detection(self, detection, index):
+    def _record_detection(self, detection, index):
         """Records a detection in the prediction map.
         Uses index to determine location of detection.
         """
-        xmin = self.det_split_coords[index][1]
-        xmax = min(xmin+detection.shape[1], self.detection_map.shape[1])
         ymin = self.det_split_coords[index][0]
         ymax = min(ymin+detection.shape[0], self.detection_map.shape[0])
+        xmin = self.det_split_coords[index][1]
+        xmax = min(xmin+detection.shape[1], self.detection_map.shape[1])
         self.detection_map[ymin:ymax, xmin:xmax] = detection
         
+    def _batch_record_detection(self, batch, indices):
+        """Takes a batch of detections and a slice object
+        that contains first, last index of batch. Records
+        detections into detection map.
+        """
+        for i, index in enumerate(indices):
+            detection = batch[i, :, :, 0]
+            self._record_detection(detection, index)
+        return
         
-    def get_proposals(self, threshold = .5):
+    def get_proposals(self, threshold = .5, verbose=False):
         """Returns a dataframe of detected craters.
         Threshold determines a cutoff for proposal likelihood.
         """
         print('{} proposals in list.'.format(len(self.proposals)))
         df = self.proposals[self.proposals.likelihood >= threshold]
-        df = df[['x', 'y', 'diameter']].copy()
+        df = df[['lat', 'long', 'diameter']].copy()
         print('Returning {} proposals.'.format(len(df)))
         return df
     
@@ -90,8 +99,8 @@ class Prediction(object):
             ax = util_functions.remove_ticks(ax)
         for i, crater in self.proposals.iterrows():
             if crater.likelihood > threshold:
-                x = crater[0]
-                y = crater[1]
+                x = crater[1]
+                y = crater[0]
                 r = crater[2]/2
                 circle = plt.Circle((x, y), r, fill=False, color='r');
                 ax.add_artist(circle);

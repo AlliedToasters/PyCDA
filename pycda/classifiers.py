@@ -44,6 +44,7 @@ class DummyClassifier(ClassifierBaseClass):
         predictions = []
         for i in range(batch_size):
             prediction = np.random.rand()
+            prediction = np.expand_dims(prediction, axis=-1)
             predictions.append(prediction)
         return np.array(predictions)
     

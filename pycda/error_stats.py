@@ -44,8 +44,8 @@ class ErrorAnalyzer(object):
             metric='l2'
         )
         #fit to proposals to search this list
-        nnb_search.fit(prop[['x', 'y', 'diameter']])
-        distances, indices = nnb_search.kneighbors(known[['x', 'y', 'diameter']])
+        nnb_search.fit(prop[['lat', 'long', 'diameter']])
+        distances, indices = nnb_search.kneighbors(known[['lat', 'long', 'diameter']])
 
         #will keep results organized
         results = known.copy()
@@ -60,8 +60,8 @@ class ErrorAnalyzer(object):
             results[col] = results[col]/results['diameter']
 
         #These copies will be our outputs
-        known_copy = known[['x', 'y', 'diameter']].copy()
-        prop_copy = prop[['x', 'y', 'diameter', 'likelihood']].copy()
+        known_copy = known[['lat', 'long', 'diameter']].copy()
+        prop_copy = prop[['lat', 'long', 'diameter', 'likelihood']].copy()
 
         #initialize truth values
         known_copy['detected'] = False
@@ -96,9 +96,13 @@ class ErrorAnalyzer(object):
             print('No results to compute!')
             return None
         self.tp = len(self.predicted[self.predicted.positive])
-        self.fp = len(self.predicted) - self.tp
-        self.fn = len(self.known) - len(self.known[self.known.detected])
+        self.fp = np.where(self.predicted[~self.predicted.positive].likelihood > self.prediction_object.threshold, 1, 0).sum()
+        self.fn = len(self.known[~self.known.detected])
         self.D = 100 * self.tp/(self.tp + self.fn)
+        self.R = self.tp/(self.tp + self.fn)
+        self.P = self.tp/(self.tp + self.fp)
+        self.FD = 1 - self.P
+        self.FNR = self.fn/(self.tp + self.fn)
         try:
             self.B = self.fp/self.tp
         except ZeroDivisionError:
@@ -112,9 +116,13 @@ class ErrorAnalyzer(object):
             print('Call .analyze() on a prediction to get stats.')
             return None
         print('='*50)
-        print('\nDetection Percentage: %{}'.format(self.D), '\n')
-        print('\nBranching Factor: ', self.B, '\n')
-        print('\nQuality Percentage: %{}'.format(self.Q), '\n')
+        print('\nDetection Percentage: %{}'.format(str(self.D)[:4]))
+        print('\nPrecision: {}'.format(str(self.P)[:4]))
+        print('\nRecall: {}'.format(str(self.R)[:4]))
+        print('\nFalse Discovery Rate: {}'.format(str(self.FD)[:4]))
+        print('\nFalse Negative Rate: {}'.format(str(self.FNR)[:4]))
+        print('\nBranching Factor: ', str(self.B)[:4])
+        print('\nQuality Percentage: %{}'.format(str(self.Q)[:4]), '\n')
         print('='*50)
         return
     
@@ -128,33 +136,33 @@ class ErrorAnalyzer(object):
             raise Exception('Known crater statistics are required to perform '
                             'error analysis. Please populate the prediction object '
                             '.known_craters attribute with known crater locations '
-                            "(pandas dataframe with columns 'x', y', 'diameter')")
+                            "(pandas dataframe with columns 'lat', long', 'diameter')")
         elif not isinstance(prediction.known_craters, type(pd.DataFrame())):
             #If data is passed in as an array, create
             #pandas dataframe for compatability. Assumes
             #data is ordered as in df; x(0), y(1), diameter(2)
             known_craters = prediction.known_craters
-            df = pd.DataFrame(columns=['x', 'y', 'diameter'])
-            df['x'] = known_craters[:, 0]
-            df['y'] = known_craters[:, 1]
+            df = pd.DataFrame(columns=['lat', 'long', 'diameter'])
+            df['lat'] = known_craters[:, 0]
+            df['long'] = known_craters[:, 1]
             df['diameter'] = known_craters[:, 2]
             craters = df
         elif isinstance(prediction.known_craters, type(pd.DataFrame())):
             craters = prediction.known_craters
             cols = craters.columns
             #attempts to format unlabeled/poorly labeled dataframe
-            if 'x' not in cols or 'y' not in cols or 'diameters' not in cols:
+            if 'lat' not in cols or 'long' not in cols or 'diameter' not in cols:
                 if verbose:
                     print('Warning: crater annotations not properly labeled. '
                           'If there is a problem, please reorder crater annotations '
                           'as: x position, y position, crater diameter (pixels) '
                           'and label columns in pandas dataframe.')
-                craters.columns = ['x', 'y', 'diameter']
+                craters.columns = ['lat', 'long', 'diameter']
         else:
             raise Exception('Sorry, labeled craters datatype is not understood. '
                             'Please populate the prediction object '
                             '.known_craters attribute with known crater locations '
-                            "(pandas dataframe with columns 'x', y', 'diameter')")
+                            "(pandas dataframe with columns 'lat', 'long', 'diameter')")
         self.prediction_object = prediction
         self.predicted, self.known = self._match_predictions(
                                         prediction.proposals,
@@ -186,7 +194,7 @@ class ErrorAnalyzer(object):
         if verbose:
             print('known crater count in image: ', len(self.known))
             print('detected crater count in image: ', len(predictions))
-        return predictions
+        return
         
     def show(self):
         """Displays the input image with predictions and
@@ -200,24 +208,24 @@ class ErrorAnalyzer(object):
         ax.imshow(image, cmap='Greys')
         ax.set_title('Detection performance for {}'.format(name))
         for i, crater in self.known.iterrows():
-            if crater.detected:
-                x = crater[0]
-                y = crater[1]
-                r = crater[2]/2
-                circle = plt.Circle((x, y), r, fill=False, color='green');
-                ax.add_artist(circle);
-            elif not crater.detected:
-                x = crater[0]
-                y = crater[1]
+            if not crater.detected:
+                y = crater[0]
+                x = crater[1]
                 r = crater[2]/2
                 circle = plt.Circle((x, y), r, fill=False, color='red');
                 ax.add_artist(circle);
         for i, proposal in predictions.iterrows():
             if not proposal.positive:
-                x = proposal[0]
-                y = proposal[1]
+                y = proposal[0]
+                x = proposal[1]
                 r = proposal[2]/2
                 circle = plt.Circle((x, y), r, fill=False, color='yellow');
+                ax.add_artist(circle);
+            elif proposal.positive:
+                y = proposal[0]
+                x = proposal[1]
+                r = proposal[2]/2
+                circle = plt.Circle((x, y), r, fill=False, color='green');
                 ax.add_artist(circle);
         handles = []
         handles.append(mpatches.Patch(color='green', label='properly detected craters'))
@@ -230,8 +238,20 @@ class ErrorAnalyzer(object):
     def return_results(self):
         """Returns matched lists of known craters and detections."""
         return self.predicted, self.known
-   
-        
+    
+    def return_stats(self):
+        """Returns matched lists of known craters and detections."""
+        stats_dict = {
+            'true_positives': self.tp,
+            'false_positives': self.fp,
+            'false_negatives': self.fn,
+            'detection_percentage': self.D,
+            'recall': self.R,
+            'precision': self.P,
+            'false_detections': self.DF,
+            'false_negative_rate': self.FNR
+        }
+        return stats_dict
         
             
         
