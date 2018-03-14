@@ -117,14 +117,14 @@ class ErrorAnalyzer(object):
             print('Call .analyze() on a prediction to get stats.')
             return None
         print('='*50)
-        print('\nDetection Percentage: %{}'.format(str(self.D)[:4]))
-        print('\nPrecision: {}'.format(str(self.P)[:4]))
-        print('\nRecall: {}'.format(str(self.R)[:4]))
-        print('\nF1-Score: {}'.format(str(self.F1)[:4]))
-        print('\nFalse Discovery Rate: {}'.format(str(self.FD)[:4]))
-        print('\nFalse Negative Rate: {}'.format(str(self.FNR)[:4]))
-        print('\nBranching Factor: ', str(self.B)[:4])
-        print('\nQuality Percentage: %{}'.format(str(self.Q)[:4]), '\n')
+        print('\nDetection Percentage: %{}'.format(round(self.D, 1)))
+        print('\nPrecision: {}'.format(round(self.P, 2)))
+        print('\nRecall: {}'.format(round(self.R, 2)))
+        print('\nF1-Score: {}'.format(round(self.F1, 2)))
+        print('\nFalse Discovery Rate: {}'.format(round(self.FD, 2)))
+        print('\nFalse Negative Rate: {}'.format(round(self.FNR, 2)))
+        print('\nBranching Factor: ', round(self.B, 2))
+        print('\nQuality Percentage: %{}'.format(round(self.Q, 1)), '\n')
         print('='*50)
         return
     
