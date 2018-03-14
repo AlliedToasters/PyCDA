@@ -63,15 +63,16 @@ class Prediction(object):
             self._record_detection(detection, index)
         return
         
-    def get_proposals(self, threshold = .5, verbose=False):
+    def _predict(self, threshold = .5):
         """Returns a dataframe of detected craters.
         Threshold determines a cutoff for proposal likelihood.
         """
-        print('{} proposals in list.'.format(len(self.proposals)))
         df = self.proposals[self.proposals.likelihood >= threshold]
         df = df[['lat', 'long', 'diameter']].copy()
-        print('Returning {} proposals.'.format(len(df)))
         return df
+    
+    def get_proposals(self):
+        return self.proposals
     
     def set_scale(self, scale):
         """User can set scale for statistics in meters.

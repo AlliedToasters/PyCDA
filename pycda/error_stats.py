@@ -101,6 +101,7 @@ class ErrorAnalyzer(object):
         self.D = 100 * self.tp/(self.tp + self.fn)
         self.R = self.tp/(self.tp + self.fn)
         self.P = self.tp/(self.tp + self.fp)
+        self.F1 = 2/((1/self.P) + (1/self.R))
         self.FD = 1 - self.P
         self.FNR = self.fn/(self.tp + self.fn)
         try:
@@ -119,6 +120,7 @@ class ErrorAnalyzer(object):
         print('\nDetection Percentage: %{}'.format(str(self.D)[:4]))
         print('\nPrecision: {}'.format(str(self.P)[:4]))
         print('\nRecall: {}'.format(str(self.R)[:4]))
+        print('\nF1-Score: {}'.format(str(self.F1)[:4]))
         print('\nFalse Discovery Rate: {}'.format(str(self.FD)[:4]))
         print('\nFalse Negative Rate: {}'.format(str(self.FNR)[:4]))
         print('\nBranching Factor: ', str(self.B)[:4])
@@ -246,8 +248,9 @@ class ErrorAnalyzer(object):
             'false_positives': self.fp,
             'false_negatives': self.fn,
             'detection_percentage': self.D,
-            'recall': self.R,
             'precision': self.P,
+            'recall': self.R,
+            'f1_score': self.F1,
             'false_detections': self.DF,
             'false_negative_rate': self.FNR
         }

@@ -100,12 +100,14 @@ class CDA(object):
         batch = np.array(batch)
         return batch
     
-    def _batch_detect(self, prediction, batch_size=None):
+    def _batch_detect(self, prediction, batch_size=None, verbose=False):
         """Generates batches to feed to detector,
         gets detection maps, handles bookkeeping.
         Returned prediction object has a completed detection
         map.
         """
+        if verbose:
+            print('Performing detections...')
         #determine batch size
         if batch_size == None:
             batch_size = self.detector.rec_batch_size
@@ -115,6 +117,10 @@ class CDA(object):
         if image.dtype == np.uint8:
             image = image/255
         while any(~prediction.detections_made):
+            if verbose:
+                progress = prediction.detections_made.sum()
+                progress = progress/len(prediction.detections_made)
+                update_progress(progress)
             #Find next index range for detection
             first_index = prediction.detections_made.sum()
             remaining_predictions = len(prediction.detections_made) - first_index
@@ -131,12 +137,16 @@ class CDA(object):
             prediction._batch_record_detection(results, indices_enumerated)
             prediction.detections_made[indices] = True
         #delete duplicate image for memory management.
+        if verbose:
+            update_progress(1)
         del image
         return prediction
     
-    def _batch_classify(self, prediction, batch_size=None):
+    def _batch_classify(self, prediction, batch_size=None, verbose=False):
         """Performs batch classifications on crater proposals.
         Updates the likelihood values for prediction proposals."""
+        if verbose:
+            print('performing classifications...')
         #determine batch size
         if batch_size == None:
             batch_size = self.classifier.rec_batch_size
@@ -155,6 +165,9 @@ class CDA(object):
             while len(crops) < batch_size:
                 try:
                     i, row = next(iter_row)
+                    if verbose:
+                        progress = i/len(df)
+                        update_progress(progress)
                 except StopIteration:
                     done = True
                     break
@@ -181,14 +194,13 @@ class CDA(object):
         else:
             input_image = np.array(input_image)
         prediction = self._get_prediction(input_image)
-        prediction.verbose = verbose
         if np.all(prediction.detections_made):
             if verbose:
                 print('detections already made!')
             prediction.proposals = pd.DataFrame(columns=['lat', 'long', 'diameter', 'likelihood'])
         else:
             prediction = self._prepare_detector(prediction)
-        prediction = self._batch_detect(prediction)
+        prediction = self._batch_detect(prediction, verbose=verbose)
         for ext in self.extractor:
             result = ext(prediction.detection_map, verbose=verbose)
             prediction.proposals = pd.concat([prediction.proposals, result], axis=0)
@@ -199,7 +211,7 @@ class CDA(object):
                 len(prediction.proposals), 
                 ' proposals extracted from detection map.\n'
             )
-        prediction = self._batch_classify(prediction)
+        prediction = self._batch_classify(prediction, verbose=verbose)
         if verbose:
             print(
                 np.where(prediction.proposals.likelihood > prediction.threshold, 1, 0).sum(),
@@ -211,8 +223,8 @@ class CDA(object):
         """Intended for 'out of box' use. Calls predictions
         and returns a pandas dataframe with crater predictions.
         """
-        prediction = self._predict(input_image)
-        return prediction.get_proposals(threshold=threshold, verbose=verbose)
+        prediction = self._predict(input_image, verbose=verbose)
+        return prediction._predict(threshold=threshold)
     
     def get_prediction(self, input_image, verbose=False):
         """Used for accessing the prediction object.
