@@ -10,5 +10,14 @@ setup(name='pycda',
     author_email='michael.klear@colorado.edu',
     license='MIT',
     packages=['pycda'],
-    classifiers=[]
+    classifiers=[],
+    install_requires=[
+        'numpy',
+        'pandas',
+        'scikit-image',
+        'scikit-learn',
+        'h5py',
+        'tensorflow',
+        'Keras'
+    ]
 )
