@@ -85,8 +85,7 @@ class ErrorAnalyzer(object):
                         prop_copy.at[prop_id, 'positive'] = True
         
         if verbose:
-            print('found {} proposals to be true.'.format(len(prop_copy[prop_copy['positive']])))
-            print('found {} craters to be detected.'.format(len(known_copy[known_copy['detected']])))
+            print('{} craters were properly detected.'.format(len(known_copy[known_copy['detected']])))
         return prop_copy, known_copy
 
     def compute_results(self):

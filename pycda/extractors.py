@@ -106,7 +106,8 @@ class FastCircles(ExtractorBaseClass):
             y_mean = round(np.mean(y_locs))
             x_mean = round(np.mean(x_locs))
             d = 2*sqrt(area/pi)
-            result.append((y_mean, x_mean, d))
+            if d > 4:
+                result.append((y_mean, x_mean, d))
         if verbose:
             print('done!')
         return result
@@ -168,7 +169,8 @@ class WatershedCircles(ExtractorBaseClass):
             dx = obj[1].stop - obj[1].start
             diameter = np.mean([dy, dx])
             proposal.append(diameter)
-            proposals.append(proposal)
+            if diameter > 4:
+                proposals.append(proposal)
         return proposals
     
     def __call__(self, detection_map, verbose=False):

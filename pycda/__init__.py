@@ -193,6 +193,7 @@ class CDA(object):
         prediction = self._batch_classify(prediction, verbose=verbose)
         if verbose:
             print(
+                '\n',
                 np.where(prediction.proposals.likelihood > prediction.threshold, 1, 0).sum(),
                 ' objects classified as craters.\n'
             )

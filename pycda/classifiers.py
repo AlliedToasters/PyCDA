@@ -27,9 +27,9 @@ class ClassifierBaseClass(object):
 class DummyClassifier(ClassifierBaseClass):
     """Dummy classifier for testing."""
     
-    def __init__(self, input_dims=(20, 20), n_channels=1):
+    def __init__(self, input_dims=(20, 20), n_channels=1, npx = 8):
         self.input_dims = input_dims
-        self.crater_pixels = 8
+        self.crater_pixels = npx
         self.input_channels = n_channels
         self.rec_batch_size = 32
         
@@ -52,16 +52,17 @@ class NullClassifier(ClassifierBaseClass):
     """For use when classifier is not wanted. Returns a likelihood of 1
     for every proposal."""
     
-    def __init__(self, input_dims = (1, 1)):
+    def __init__(self, input_dims = (1, 1), n_channels=1):
         self.input_dims = input_dims
         self.crater_pixels = 1
-        self.rec_batch_size = 100
+        self.rec_batch_size = 1000
+        self.input_channels = n_channels
         
     def predict(self, batch):
         """Returns an array of randomly-generated predictions of length
         of batch."""
         batch_size = batch.shape[0]
-        predictions = [1 for x in range(batch_size)]
+        predictions = [[1] for x in range(batch_size)]
         return np.array(predictions)
         
 class ConvolutionalClassifier(ClassifierBaseClass):
