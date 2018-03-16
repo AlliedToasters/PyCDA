@@ -15,50 +15,47 @@ PyCDA currently supports Python 3.6; we recommend using a virtual environment or
 
 ### Installing
 
-Clone this repository. In your python 3.6 environment, go to to the root directory of PyCDA. Run
+PyCDA's current release, 0.1.1, is very early and unstable. However, it is available for download via PyPi for the adventurous.
+From your python 3.6 environment, install with pip via the command line:
 
 ```
-pip install -r requirements.txt
-```
-
-If you'd prefer to install the dependencies manually, use:
-
-```
-pip install numpy==1.14.1
-pip install pandas==0.22.0
-pip install scikit-image==0.13.1
-pip install scikit-learn==0.19.1
-pip install h5py==2.7.1
-pip install tensorflow==1.6.0
-pip install Keras==2.1.5
-
-```
-
-and, finally, from the root directory of the cloned repository:
-
-```
-pip install .
+pip install pycda
 ```
 
 If you'd like to install in development mode, use the -e flag so changes become active immediately.
 
+### Using PyCDA
+
+For a quick prediction "out of the box," use the commands:
+
+```
+from pycda import CDA, load_image
+
+cda = CDA()
+image = load_image('my_image_filepath.img')
+detections = cda.predict(image)
+```
+
+PyCDA provides visualization and error analysis tools as well; check out the <a href='https://github.com/AlliedToasters/PyCDA/blob/master/demo.ipynb'>demo notebook</a> for a peek at these features!
+
 ## Running the tests
 
-Test your installation with test.py:
+Test your installation with test.py, available from this repo. With wget:
+
+```
+wget https://raw.githubusercontent.com/AlliedToasters/PyCDA/master/test.py
+```
+
+Then, run
 
 ```
 python test.py
 ```
 
-The test takes about a minute on my machine; this is because it's testing batch predictions on tensorflow models,
-which takes some time. I'm working to reduce test time.<br>
-
-The test runs a detection on a sample image and runs an error analysis on its predicitions. It tests the most basic pieces of PyCDA. A more robust testing suite is under development.
-
 
 ## Versioning
 
-As per [SemVer](http://semver.org/) guidelines, the current (first development) version is 0.1.0 and is the only available version.
+PyCDA follows something like [SemVer](http://semver.org/) guidelines, the current release is 0.1.1 and is still in early development. I like to call it 'super top secret pre-alpha release 0.1.1', but it's not really a secret. You'll get version 0.1.1 and its dependencies via pip install pycda.
 
 ## Authors
 
