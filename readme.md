@@ -22,8 +22,6 @@ From your python 3.6 environment, install with pip via the command line:
 pip install pycda
 ```
 
-If you'd like to install in development mode, use the -e flag so changes become active immediately.
-
 ### Using PyCDA
 
 For a quick prediction "out of the box," use the commands:
@@ -59,7 +57,7 @@ PyCDA follows something like [SemVer](http://semver.org/) guidelines, the curren
 
 ## Authors
 
-* **Michael Klear** - *Initial work* - [AlliedToasters](https://github.com/alliedtoasters)
+* **Michael Klear** - *Initial work* - [AlliedToasters](https://github.com/AlliedToasters)
 
 
 ## License
