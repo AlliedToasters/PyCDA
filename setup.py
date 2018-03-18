@@ -11,6 +11,12 @@ setup(name='pycda',
     license='MIT',
     packages=['pycda'],
     classifiers=[],
+    data_files = [
+        'pycda/models/*.h5'
+        'pycda/sample_imgs/*.csv'
+        'pycda/sample_imgs/*.pgm'
+        'pycda/sample_imgs/*.jpg'
+    ],
     include_package_data=True,
     install_requires=[
         'numpy',
