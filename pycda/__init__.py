@@ -234,13 +234,11 @@ class CDAImage(object):
     def show(self, show_ticks=False):
         """Displays the input image using PIL image object"""
         fig, ax = plt.subplots();
-        ax.imshow(self.image);
-        if len(self.image.shape) == 2:
-            plt.set_cmap('Greys')
+        ax.imshow(self.image, cmap='Greys_r');
         if not show_ticks:
             ax = remove_ticks(ax)
         plt.show();
-        return
+        return None
     
     def as_array(self):
         """If array version of image is needed."""

@@ -1,0 +1,4 @@
+include pycda/models/*.h5
+include pycda/sample_imgs/*.csv
+include pycda/sample_imgs/*.pgm
+include pycda/sample_imgs/*.jpg

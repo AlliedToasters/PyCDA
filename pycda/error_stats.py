@@ -205,8 +205,8 @@ class ErrorAnalyzer(object):
         name = self.prediction_object.__name__
         threshold = self.prediction_object.threshold
         predictions = self.predicted[self.predicted.likelihood > threshold]
-        fig, ax = plt.subplots(figsize=(10, 10))
-        ax.imshow(image, cmap='Greys')
+        fig, ax = plt.subplots(figsize=(7, 7))
+        ax.imshow(image, cmap='Greys_r')
         ax.set_title('Detection performance for {}'.format(name))
         for i, crater in self.known.iterrows():
             if not crater.detected:

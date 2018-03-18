@@ -86,8 +86,8 @@ class Prediction(object):
         overlaid. Threshold determines the likelihood for which a proposal
         should be displayed.
         """
-        fig, ax = plt.subplots(figsize=(10, 10))
-        ax.imshow(self.input_image)
+        fig, ax = plt.subplots(figsize=(7, 7))
+        ax.imshow(self.input_image, cmap='Greys_r')
         ax.set_title('Crater detections for {}'.format(self.__name__))
         if include_ticks:
             if self.scale == None:
@@ -107,15 +107,13 @@ class Prediction(object):
                 ax.add_artist(circle);
         plt.show();
         
-    def show_detection(self):
+    def show_detection(self, remove_ticks=True):
         """Plots the detection map alongside the input image."""
-        fig, ax = plt.subplots(ncols=2, figsize=(12, 8))
-        if self.input_image.shape==2:
-            cmap1 = 'Greys'
-            ax[0].imshow(self.input_image, cmap=cmap1)
-        else:
-            ax[0].imshow(self.input_image)
-        ax[1].imshow(self.detection_map)
+        fig, ax = plt.subplots(ncols=2, figsize=(9, 6))
+        ax[0].imshow(self.input_image, cmap='Greys_r')
+        ax[1].imshow(self.detection_map, cmap='CMRmap')
+        if remove_ticks:
+            ax[0], ax[1] = util_functions.remove_ticks(ax[0]), util_functions.remove_ticks(ax[1])
         plt.show();
         
     def to_csv(self, filepath, likelihoods=False, index=False):
