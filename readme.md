@@ -8,7 +8,7 @@ The current release, pre-alpha "lucky" 0.1.13, is a conceptual demonstration; it
 
 ## Getting Started
 
-At its most basic level, PyCDA is built to be <I>easy to use</I>, and that should start with installation; pre-alpha "lucky" version 0.1.13 is now available via PyPI via:
+At its most basic level, PyCDA is built to be <I>easy to use</I>, and that should start with installation; pre-alpha "lucky" version 0.1.13 is now available via PyPI with:
 
 ```
 pip install pycda
