@@ -4,10 +4,15 @@ Go from image to crater annotations in minutes.
 <b>PyCDA is a crater detection algorithm (CDA) written in Python.</b><br>
 
 Inspired by research in applying convolutional neural networks to <a href='https://www.hou.usra.edu/meetings/lpsc2018/pdf/2202.pdf'>crater detection</a> (Benedix et al.) and <a href='https://arxiv.org/pdf/1601.00978.pdf'>crater candidate classification</a> (Cohen et al.), PyCDA is aimed at making CDA research modular and usable.<br><br>
+The current release, pre-alpha "lucky" 0.1.13, is a conceptual demonstration; its general performance on most datasets is too poor for use; however, it will yield crater predictions.
 
 ## Getting Started
 
-At its most basic level, PyCDA is built to be <I>easy to use</I>, and that should start with installation; as we are still in development, the only way to install is by cloning this repository and installing from the cloned directory.
+At its most basic level, PyCDA is built to be <I>easy to use</I>, and that should start with installation; pre-alpha "lucky" version 0.1.13 is now available via PyPI via:
+
+```
+pip install pycda
+```
 
 ### Prerequisites
 
@@ -15,7 +20,7 @@ PyCDA currently supports Python 3.6; we recommend using a virtual environment or
 
 ### Installing
 
-PyCDA's current release, 0.1.1, is very early and unstable. However, it is available for download via PyPi for the adventurous.
+PyCDA's current release, "lucky" 0.1.13, is a prototype pre-release. However, it is available for download via PyPi for the adventurous.
 From your python 3.6 environment, install with pip via the command line:
 
 ```
@@ -53,11 +58,23 @@ python test.py
 
 ## Versioning
 
-PyCDA follows something like [SemVer](http://semver.org/) guidelines, the current release is 0.1.1 and is still in early development. I like to call it 'super top secret pre-alpha release 0.1.1', but it's not really a secret. You'll get version 0.1.1 and its dependencies via pip install pycda.
+PyCDA follows something like [SemVer](http://semver.org/) guidelines, the current release is "lucky" 0.1.13 and is still in early development. I fixed the data file loading issues that came with 'super top secret pre-alpha release 0.1.1', and we finally have something that does something "out of the box."
 
 ## Authors
 
 * **Michael Klear** - *Initial work* - [AlliedToasters](https://github.com/AlliedToasters)
+
+## Contributing
+
+PyCDA is a community project and we welcome anybody in the CDA research community, planetary scientists, or Python developers to the fold. Please reach out to Michael Klear at:<br>
+
+michael.klear@colorado.edu<br>
+
+-or-<br>
+
+michael.r.klear@gmail.com<br>
+
+to contribute!
 
 
 ## License
