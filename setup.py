@@ -1,4 +1,7 @@
 from setuptools import setup, find_packages
+import pkg_resources
+
+path = pkg_resources.resource_filename('pycda', 'models/tinynet.h5')
 
 setup(name='pycda',
     version='0.1.12',
@@ -9,13 +12,14 @@ setup(name='pycda',
     author='Michael Klear',
     author_email='michael.klear@colorado.edu',
     license='MIT',
-    packages=['pycda'],
+    packages=find_packages(),
     classifiers=[],
     data_files = [
-        'pycda/models/*.h5'
-        'pycda/sample_imgs/*.csv'
-        'pycda/sample_imgs/*.pgm'
-        'pycda/sample_imgs/*.jpg'
+        'pycda/models/tinynet.h5',
+        'pycda/models/classifier_12x12_2.h5',
+        'pycda/sample_imgs/holdout_tile_labels.csv',
+        'pycda/sample_imgs/holdout_tile.pgm',
+        'pycda/sample_imgs/rgb_sample.jpg',
     ],
     include_package_data=True,
     install_requires=[
