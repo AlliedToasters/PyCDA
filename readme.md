@@ -43,6 +43,8 @@ PyCDA currently handles image using PIL; image files from disc must therefore be
 
 PyCDA provides visualization and error analysis tools as well; check out the <a href='https://github.com/AlliedToasters/PyCDA/blob/master/demo.ipynb'>demo notebook</a> for a peek at these features!
 
+Documentation on the entire project is available <a href='http://pycda.readthedocs.io/en/latest/index.html'>here</a>.
+
 ## Running the tests
 
 Test your installation with test.py, available from this repo. With wget:
