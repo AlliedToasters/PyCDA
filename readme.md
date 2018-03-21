@@ -4,11 +4,11 @@ Go from image to crater annotations in minutes.
 <b>PyCDA is a crater detection algorithm (CDA) written in Python.</b><br>
 
 Inspired by research in applying convolutional neural networks to <a href='https://www.hou.usra.edu/meetings/lpsc2018/pdf/2202.pdf'>crater detection</a> (Benedix et al.) and <a href='https://arxiv.org/pdf/1601.00978.pdf'>crater candidate classification</a> (Cohen et al.), PyCDA is aimed at making CDA research modular and usable.<br><br>
-The current release, pre-alpha "lucky" 0.1.13, is a conceptual demonstration; its general performance on most datasets is too poor for use; however, it will yield crater predictions.
+The current release, pre-alpha "fun" 0.1.14, is a conceptual demonstration; its general performance on some datasets is too poor for use; however, it will yield crater detections.
 
 ## Getting Started
 
-At its most basic level, PyCDA is built to be <I>easy to use</I>, and that should start with installation; pre-alpha "lucky" version 0.1.13 is now available via PyPI with:
+At its most basic level, PyCDA is built to be <I>easy to use</I>, and that should start with installation; pre-alpha "fun" version 0.1.14 is now available via PyPI with:
 
 ```
 pip install pycda
@@ -20,7 +20,7 @@ PyCDA currently supports Python 3.6; we recommend using a virtual environment or
 
 ### Installing
 
-PyCDA's current release, "lucky" 0.1.13, is a prototype pre-release. However, it is available for download via PyPi for the adventurous.
+PyCDA's current release, "fun" 0.1.14, is a prototype pre-release. However, it is available for download via PyPi for the adventurous.
 From your python 3.6 environment, install with pip via the command line:
 
 ```
@@ -60,7 +60,7 @@ python test.py
 
 ## Versioning
 
-PyCDA follows something like [SemVer](http://semver.org/) guidelines, the current release is "lucky" 0.1.13 and is still in early development. I fixed the data file loading issues that came with 'super top secret pre-alpha release 0.1.1', and we finally have something that does something "out of the box."
+PyCDA follows something like [SemVer](http://semver.org/) guidelines, the current release is "fun" 0.1.14 and is still in early development. I fixed the data file loading issues that came with 'super top secret pre-alpha release 0.1.1', and we finally have something that does something "out of the box."
 
 ## Authors
 
