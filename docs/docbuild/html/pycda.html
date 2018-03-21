@@ -1,0 +1,462 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>PyCDA Submodules &#8212; PyCDA 0.1.13 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Crater Detection Pipeline" href="cda.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="cda.html" title="Crater Detection Pipeline"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PyCDA 0.1.13 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="pycda-submodules">
+<h1>PyCDA Submodules<a class="headerlink" href="#pycda-submodules" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-pycda.detectors">
+<span id="detectors"></span><h2>Detectors<a class="headerlink" href="#module-pycda.detectors" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="pycda.detectors.CustomDetector">
+<em class="property">class </em><code class="descclassname">pycda.detectors.</code><code class="descname">CustomDetector</code><span class="sig-paren">(</span><em>model_path</em>, <em>rec_batch_size=1</em>, <em>in_out_map='center'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/detectors.html#CustomDetector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.detectors.CustomDetector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pycda.detectors.DetectorBaseClass" title="pycda.detectors.DetectorBaseClass"><code class="xref py py-class docutils literal notranslate"><span class="pre">pycda.detectors.DetectorBaseClass</span></code></a></p>
+<p>This class allows a user to load a custom detection
+model into PyCDA. PyCDA will automatically detect input
+and output dimensions. All models are channels-last;
+channels-first is not currently supported.
+You should specify recommended batch size.
+(if not specified, set to 1.)</p>
+<dl class="method">
+<dt id="pycda.detectors.CustomDetector.predict">
+<code class="descname">predict</code><span class="sig-paren">(</span><em>batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/detectors.html#CustomDetector.predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.detectors.CustomDetector.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns a batch of random-pixel images with appropriate shape.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pycda.detectors.DetectorBaseClass">
+<em class="property">class </em><code class="descclassname">pycda.detectors.</code><code class="descname">DetectorBaseClass</code><a class="reference internal" href="_modules/pycda/detectors.html#DetectorBaseClass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.detectors.DetectorBaseClass" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>This is the base class for a detector object.
+Attributes in the __init__ method should be specified 
+by child detectors.</p>
+<dl class="method">
+<dt id="pycda.detectors.DetectorBaseClass.predict">
+<code class="descname">predict</code><span class="sig-paren">(</span><em>batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/detectors.html#DetectorBaseClass.predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.detectors.DetectorBaseClass.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predict method takes a batch and returns a batch of predictions.
+Output should be a batch of single-channel images of shape:
+(batch_size, self.output_dims[0], self.output_dims[1], 1)</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pycda.detectors.TinyDetector">
+<em class="property">class </em><code class="descclassname">pycda.detectors.</code><code class="descname">TinyDetector</code><a class="reference internal" href="_modules/pycda/detectors.html#TinyDetector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.detectors.TinyDetector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pycda.detectors.DetectorBaseClass" title="pycda.detectors.DetectorBaseClass"><code class="xref py py-class docutils literal notranslate"><span class="pre">pycda.detectors.DetectorBaseClass</span></code></a></p>
+<p>A tiny version of U-Net downsized for speed. 
+Its output is a per-pixel likelihood that
+a given pixel is a part of a crater surface feature.
+Single color channel (grayscale).</p>
+<dl class="method">
+<dt id="pycda.detectors.TinyDetector.predict">
+<code class="descname">predict</code><span class="sig-paren">(</span><em>batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/detectors.html#TinyDetector.predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.detectors.TinyDetector.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns a batch of random-pixel images with appropriate shape.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pycda.detectors.UnetDetector">
+<em class="property">class </em><code class="descclassname">pycda.detectors.</code><code class="descname">UnetDetector</code><a class="reference internal" href="_modules/pycda/detectors.html#UnetDetector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.detectors.UnetDetector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pycda.detectors.DetectorBaseClass" title="pycda.detectors.DetectorBaseClass"><code class="xref py py-class docutils literal notranslate"><span class="pre">pycda.detectors.DetectorBaseClass</span></code></a></p>
+<p>U-net convolutional model to generate pixel-wise
+prediction. Its output is a per-pixel likelihood that
+a given pixel is a part of a crater surface feature.
+Single color channel (grayscale).</p>
+<dl class="method">
+<dt id="pycda.detectors.UnetDetector.predict">
+<code class="descname">predict</code><span class="sig-paren">(</span><em>batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/detectors.html#UnetDetector.predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.detectors.UnetDetector.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns a batch of random-pixel images with appropriate shape.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="pycda.detectors.get">
+<code class="descclassname">pycda.detectors.</code><code class="descname">get</code><span class="sig-paren">(</span><em>identifier</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/detectors.html#get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.detectors.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>handles argument to CDA pipeline for detector specification.
+returns an initialized detector.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-pycda.extractors">
+<span id="extractors"></span><h2>Extractors<a class="headerlink" href="#module-pycda.extractors" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="pycda.extractors.DummyExtractor">
+<em class="property">class </em><code class="descclassname">pycda.extractors.</code><code class="descname">DummyExtractor</code><a class="reference internal" href="_modules/pycda/extractors.html#DummyExtractor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.extractors.DummyExtractor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pycda.extractors.ExtractorBaseClass" title="pycda.extractors.ExtractorBaseClass"><code class="xref py py-class docutils literal notranslate"><span class="pre">pycda.extractors.ExtractorBaseClass</span></code></a></p>
+<p>Dummy Extractor takes an input image and returns a list of
+random predictions for testing. Proposals are a list of tuples.
+Each tuple in the list has the crater proposal as (in pixels):
+(x position, y position, diameter).</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="pycda.extractors.ExtractorBaseClass">
+<em class="property">class </em><code class="descclassname">pycda.extractors.</code><code class="descname">ExtractorBaseClass</code><a class="reference internal" href="_modules/pycda/extractors.html#ExtractorBaseClass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.extractors.ExtractorBaseClass" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Base class for an extractor object. The extractor
+converts a prediction map into a list of crater candidates.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="pycda.extractors.FastCircles">
+<em class="property">class </em><code class="descclassname">pycda.extractors.</code><code class="descname">FastCircles</code><span class="sig-paren">(</span><em>sensitivity=0.5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/extractors.html#FastCircles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.extractors.FastCircles" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pycda.extractors.ExtractorBaseClass" title="pycda.extractors.ExtractorBaseClass"><code class="xref py py-class docutils literal notranslate"><span class="pre">pycda.extractors.ExtractorBaseClass</span></code></a></p>
+<p>Circle Extractor assumes all objects in detection map are
+circles. It identifies groups of pixels, computes
+their mean location (centroid), and diameter based on
+the number of pixels in the group. Takes a prediction object
+and returns a list of proposals.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="pycda.extractors.WatershedCircles">
+<em class="property">class </em><code class="descclassname">pycda.extractors.</code><code class="descname">WatershedCircles</code><span class="sig-paren">(</span><em>sensitivity=0.5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/extractors.html#WatershedCircles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.extractors.WatershedCircles" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pycda.extractors.ExtractorBaseClass" title="pycda.extractors.ExtractorBaseClass"><code class="xref py py-class docutils literal notranslate"><span class="pre">pycda.extractors.ExtractorBaseClass</span></code></a></p>
+<p>Takes a prediction object after detection and returns a 
+list of crater proposals (by calling object on prediction.)
+Performs a ‘watershed’ analysis:
+-transforms image to binary for some threshold (default .5)
+-transforms pixel values to min distance to background (0) pixel
+-uses local maxima as points for ‘water sources’
+-uses negative distance values to build ‘basins’
+-fills ‘basins’ with water from sources
+-uses the boundaries where ‘water meets’ as segment boundaries
+-objects are converted to circles whose center is the centroid of the
+bounding box of the object, diameter is the mean(width, height) of bounding
+box.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycda.extractors.get">
+<code class="descclassname">pycda.extractors.</code><code class="descname">get</code><span class="sig-paren">(</span><em>identifier</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/extractors.html#get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.extractors.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>handles argument to CDA pipeline for extractor specification.
+returns an initialized extractor.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-pycda.classifiers">
+<span id="classifiers"></span><h2>Classifiers<a class="headerlink" href="#module-pycda.classifiers" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="pycda.classifiers.ClassifierBaseClass">
+<em class="property">class </em><code class="descclassname">pycda.classifiers.</code><code class="descname">ClassifierBaseClass</code><a class="reference internal" href="_modules/pycda/classifiers.html#ClassifierBaseClass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.classifiers.ClassifierBaseClass" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Base object for crater classifier. Classifiers
+make a binary prediction on a crater proposal and return
+a value between zero and one; one represents a true crater
+and zero represents a false proposal.</p>
+<dl class="method">
+<dt id="pycda.classifiers.ClassifierBaseClass.predict">
+<code class="descname">predict</code><span class="sig-paren">(</span><em>batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/classifiers.html#ClassifierBaseClass.predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.classifiers.ClassifierBaseClass.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prediction call should return an array of predictions
+of length of batch.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pycda.classifiers.ConvolutionalClassifier">
+<em class="property">class </em><code class="descclassname">pycda.classifiers.</code><code class="descname">ConvolutionalClassifier</code><a class="reference internal" href="_modules/pycda/classifiers.html#ConvolutionalClassifier"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.classifiers.ConvolutionalClassifier" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pycda.classifiers.ClassifierBaseClass" title="pycda.classifiers.ClassifierBaseClass"><code class="xref py py-class docutils literal notranslate"><span class="pre">pycda.classifiers.ClassifierBaseClass</span></code></a></p>
+<p>12x12 pixel classifier using 2D convolution
+implimented with Keras on tensorflow backend. Fast.</p>
+<dl class="method">
+<dt id="pycda.classifiers.ConvolutionalClassifier.predict">
+<code class="descname">predict</code><span class="sig-paren">(</span><em>batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/classifiers.html#ConvolutionalClassifier.predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.classifiers.ConvolutionalClassifier.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs prediction on batch.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pycda.classifiers.CustomClassifier">
+<em class="property">class </em><code class="descclassname">pycda.classifiers.</code><code class="descname">CustomClassifier</code><span class="sig-paren">(</span><em>model_path</em>, <em>crater_pixels</em>, <em>rec_batch_size=24</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/classifiers.html#CustomClassifier"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.classifiers.CustomClassifier" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pycda.classifiers.ClassifierBaseClass" title="pycda.classifiers.ClassifierBaseClass"><code class="xref py py-class docutils literal notranslate"><span class="pre">pycda.classifiers.ClassifierBaseClass</span></code></a></p>
+<p>This class allows a user to load a custom classifier
+into PyCDA. PyCDA will automatically detect input
+dimensions. Provide crater_size, the number of pixels
+the crater candidate diameter should occupy in the 
+cropped image. All models are channels-last;
+channels-first is not currently supported.
+You should specify recommended batch size.
+(if not specified, set to 24.)</p>
+<dl class="method">
+<dt id="pycda.classifiers.CustomClassifier.predict">
+<code class="descname">predict</code><span class="sig-paren">(</span><em>batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/classifiers.html#CustomClassifier.predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.classifiers.CustomClassifier.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs prediction on batch.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pycda.classifiers.DummyClassifier">
+<em class="property">class </em><code class="descclassname">pycda.classifiers.</code><code class="descname">DummyClassifier</code><span class="sig-paren">(</span><em>input_dims=(20</em>, <em>20)</em>, <em>n_channels=1</em>, <em>npx=8</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/classifiers.html#DummyClassifier"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.classifiers.DummyClassifier" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pycda.classifiers.ClassifierBaseClass" title="pycda.classifiers.ClassifierBaseClass"><code class="xref py py-class docutils literal notranslate"><span class="pre">pycda.classifiers.ClassifierBaseClass</span></code></a></p>
+<p>Dummy classifier for testing.</p>
+<dl class="method">
+<dt id="pycda.classifiers.DummyClassifier.predict">
+<code class="descname">predict</code><span class="sig-paren">(</span><em>batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/classifiers.html#DummyClassifier.predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.classifiers.DummyClassifier.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an array of randomly-generated predictions of length
+of batch.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pycda.classifiers.NullClassifier">
+<em class="property">class </em><code class="descclassname">pycda.classifiers.</code><code class="descname">NullClassifier</code><span class="sig-paren">(</span><em>input_dims=(1</em>, <em>1)</em>, <em>n_channels=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/classifiers.html#NullClassifier"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.classifiers.NullClassifier" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pycda.classifiers.ClassifierBaseClass" title="pycda.classifiers.ClassifierBaseClass"><code class="xref py py-class docutils literal notranslate"><span class="pre">pycda.classifiers.ClassifierBaseClass</span></code></a></p>
+<p>For use when classifier is not wanted. Returns a likelihood of 1
+for every proposal.</p>
+<dl class="method">
+<dt id="pycda.classifiers.NullClassifier.predict">
+<code class="descname">predict</code><span class="sig-paren">(</span><em>batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/classifiers.html#NullClassifier.predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.classifiers.NullClassifier.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an array of randomly-generated predictions of length
+of batch.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="pycda.classifiers.get">
+<code class="descclassname">pycda.classifiers.</code><code class="descname">get</code><span class="sig-paren">(</span><em>identifier</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/classifiers.html#get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.classifiers.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>handles argument to CDA pipeline for classifier specification.
+returns an initialized classifier.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-pycda.predictions">
+<span id="predictions"></span><h2>Predictions<a class="headerlink" href="#module-pycda.predictions" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="pycda.predictions.Prediction">
+<em class="property">class </em><code class="descclassname">pycda.predictions.</code><code class="descname">Prediction</code><span class="sig-paren">(</span><em>image</em>, <em>id_no</em>, <em>cda</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/predictions.html#Prediction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.predictions.Prediction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A prediction object is a specialized data
+handler for pycda. It tracks the progress of predictions
+on an input image, helps the pipeline track information,
+and can perform auxiliary functions that help the user
+inspect the prediction, save the results, export csv files,
+and modify hyperparameters.</p>
+<dl class="method">
+<dt id="pycda.predictions.Prediction.get_proposals">
+<code class="descname">get_proposals</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/predictions.html#Prediction.get_proposals"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.predictions.Prediction.get_proposals" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dataframe with crater proposals and
+likelihoods from classifier.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycda.predictions.Prediction.set_scale">
+<code class="descname">set_scale</code><span class="sig-paren">(</span><em>scale</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/predictions.html#Prediction.set_scale"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.predictions.Prediction.set_scale" title="Permalink to this definition">¶</a></dt>
+<dd><p>User can set scale for statistics in meters.
+scale should be meters per pixel; pass scale as float or int
+as argument, saves scale to prediction object.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycda.predictions.Prediction.show">
+<code class="descname">show</code><span class="sig-paren">(</span><em>threshold=0.5</em>, <em>include_ticks=True</em>, <em>save_plot=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/predictions.html#Prediction.show"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.predictions.Prediction.show" title="Permalink to this definition">¶</a></dt>
+<dd><p>Displays the input image with the predicted craters
+overlaid.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycda.predictions.Prediction.show_detection">
+<code class="descname">show_detection</code><span class="sig-paren">(</span><em>remove_ticks=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/predictions.html#Prediction.show_detection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.predictions.Prediction.show_detection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots the detection map alongside the input image.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycda.predictions.Prediction.to_csv">
+<code class="descname">to_csv</code><span class="sig-paren">(</span><em>filepath</em>, <em>likelihoods=False</em>, <em>index=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/predictions.html#Prediction.to_csv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.predictions.Prediction.to_csv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a csv file with predictions. If likelihoods
+is True, a likelihoods column is added to the csv file.
+Saves csv to filepath usind pd.to_csv method.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-pycda.error_stats">
+<span id="error-stats"></span><h2>Error Stats<a class="headerlink" href="#module-pycda.error_stats" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="pycda.error_stats.ErrorAnalyzer">
+<em class="property">class </em><code class="descclassname">pycda.error_stats.</code><code class="descname">ErrorAnalyzer</code><a class="reference internal" href="_modules/pycda/error_stats.html#ErrorAnalyzer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.error_stats.ErrorAnalyzer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Error Analyzer is used to measure predictive performance
+of cda. It is intended for use on images where all craters
+have been hand labeled and so are “known”. The PyCDA prediction
+object accepts known craters as a pandas dataframe under the
+attribute prediction.known_craters; the columns ‘lat’, ‘long’, 
+and ‘diameter’ should be populated with approprate values for 
+known crater objects for use with ErrorAnalyzer.</p>
+<dl class="method">
+<dt id="pycda.error_stats.ErrorAnalyzer.analyze">
+<code class="descname">analyze</code><span class="sig-paren">(</span><em>prediction</em>, <em>verbose=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/error_stats.html#ErrorAnalyzer.analyze"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.error_stats.ErrorAnalyzer.analyze" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes a prediction object and performs analysis on it.
+Raises an exception if no known crater labels are attributed
+to the input prediction object.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycda.error_stats.ErrorAnalyzer.plot_densities">
+<code class="descname">plot_densities</code><span class="sig-paren">(</span><em>verbose=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/error_stats.html#ErrorAnalyzer.plot_densities"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.error_stats.ErrorAnalyzer.plot_densities" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates histogram plot with predicted and actual
+crater densities by size.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycda.error_stats.ErrorAnalyzer.print_report">
+<code class="descname">print_report</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/error_stats.html#ErrorAnalyzer.print_report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.error_stats.ErrorAnalyzer.print_report" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prints performance statistics for prediction.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycda.error_stats.ErrorAnalyzer.return_results">
+<code class="descname">return_results</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/error_stats.html#ErrorAnalyzer.return_results"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.error_stats.ErrorAnalyzer.return_results" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a tuple: one df predictions with additional column (positive)
+with boolean values; another df with craters and an additional column
+(detected) with boolean values.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycda.error_stats.ErrorAnalyzer.return_stats">
+<code class="descname">return_stats</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/error_stats.html#ErrorAnalyzer.return_stats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.error_stats.ErrorAnalyzer.return_stats" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns scoring stats: true positive count, false positive count,
+false negative count, f1-score, and some other binary error statistics.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycda.error_stats.ErrorAnalyzer.show">
+<code class="descname">show</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/error_stats.html#ErrorAnalyzer.show"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.error_stats.ErrorAnalyzer.show" title="Permalink to this definition">¶</a></dt>
+<dd><p>Displays the input image with predictions and
+known craters displayed by colors.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-pycda.sample_data">
+<span id="sample-data"></span><h2>Sample Data<a class="headerlink" href="#module-pycda.sample_data" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="pycda.sample_data.get_sample_csv">
+<code class="descclassname">pycda.sample_data.</code><code class="descname">get_sample_csv</code><span class="sig-paren">(</span><em>filename='holdout_tile_labels.csv'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/sample_data.html#get_sample_csv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.sample_data.get_sample_csv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieves hand-labeled crater annotations for image
+holdout_tile.pgm (default returned by get_sample_image()).
+Returns pandas dataframe.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycda.sample_data.get_sample_image">
+<code class="descclassname">pycda.sample_data.</code><code class="descname">get_sample_image</code><span class="sig-paren">(</span><em>filename='holdout_tile.pgm'</em>, <em>choose=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/sample_data.html#get_sample_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.sample_data.get_sample_image" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieves sample data from the in-package directory.
+if choose=True, randomly selects sample photo from package.</p>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">PyCDA Submodules</a><ul>
+<li><a class="reference internal" href="#module-pycda.detectors">Detectors</a></li>
+<li><a class="reference internal" href="#module-pycda.extractors">Extractors</a></li>
+<li><a class="reference internal" href="#module-pycda.classifiers">Classifiers</a></li>
+<li><a class="reference internal" href="#module-pycda.predictions">Predictions</a></li>
+<li><a class="reference internal" href="#module-pycda.error_stats">Error Stats</a></li>
+<li><a class="reference internal" href="#module-pycda.sample_data">Sample Data</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="cda.html"
+                        title="previous chapter">Crater Detection Pipeline</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/pycda.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="cda.html" title="Crater Detection Pipeline"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PyCDA 0.1.13 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Michael Klear.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.1.
+    </div>
+  </body>
+</html>

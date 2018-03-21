@@ -1,0 +1,165 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Getting Started &#8212; PyCDA 0.1.13 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Crater Detection Pipeline" href="cda.html" />
+    <link rel="prev" title="Welcome to PyCDA’s documentation!" href="index.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="cda.html" title="Crater Detection Pipeline"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to PyCDA’s documentation!"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PyCDA 0.1.13 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="getting-started">
+<h1>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+<p>The latest version of PyCDA is available for download via pip. As things are improving rapidly, you’ll want the latest version.</p>
+<p>PyCDA currently supports Python 3.6 only; we recommend using a virtual environment (such as <a class="reference external" href="https://conda.io/docs/user-guide/install/download.html">conda</a> or <a class="reference external" href="https://virtualenv.pypa.io/en/stable/">virtualenv</a>) to keep your dependencies straight. As PyCDA has not been tested for dependency version ranges, pip will want to upgrade packages in the environment with which you install PyCDA; this can cause dependency issues in other places.</p>
+<p>From your Python 3.6 environment, run:</p>
+<p><code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">pycda</span></code></p>
+<p>pip will install the dependencies for you. You’ve installed PyCDA!</p>
+</div>
+<div class="section" id="make-detections">
+<h2>Make Detections<a class="headerlink" href="#make-detections" title="Permalink to this headline">¶</a></h2>
+<p>To use PyCDA, you’ll need to chop up your image data into reasonably-sized pieces; 2,000 x 2,000 pixels per segment is very reasonable, and better machines can handle much bigger. It really depends on the size of your RAM.</p>
+<p>Put your image segments into a directory and denote its path. For this example, we’ll save this 1592 x 1128 pixel image (taken from the Mars Express HRSC instrument):</p>
+<img alt="_images/image1.bmp" src="_images/image1.bmp" />
+<p>to the path:</p>
+<p><code class="docutils literal notranslate"><span class="pre">/data/image1.bmp</span></code></p>
+<p>Now we’re ready to begin. Open your python environment:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">-&gt;</span> <span class="o">%</span> <span class="n">python3</span>
+<span class="n">Python</span> <span class="mf">3.6</span><span class="o">.</span><span class="mi">4</span> <span class="o">|</span><span class="n">Anaconda</span><span class="p">,</span> <span class="n">Inc</span><span class="o">.|</span> <span class="p">(</span><span class="n">default</span><span class="p">,</span> <span class="n">Jan</span> <span class="mi">16</span> <span class="mi">2018</span><span class="p">,</span> <span class="mi">18</span><span class="p">:</span><span class="mi">10</span><span class="p">:</span><span class="mi">19</span><span class="p">)</span>
+<span class="p">[</span><span class="n">GCC</span> <span class="mf">7.2</span><span class="o">.</span><span class="mi">0</span><span class="p">]</span> <span class="n">on</span> <span class="n">linux</span>
+<span class="n">Type</span> <span class="s2">&quot;help&quot;</span><span class="p">,</span> <span class="s2">&quot;copyright&quot;</span><span class="p">,</span> <span class="s2">&quot;credits&quot;</span> <span class="ow">or</span> <span class="s2">&quot;license&quot;</span> <span class="k">for</span> <span class="n">more</span> <span class="n">information</span><span class="o">.</span>
+<span class="o">&gt;&gt;&gt;</span><span class="kn">from</span> <span class="nn">pycda</span> <span class="k">import</span> <span class="n">CDA</span><span class="p">,</span> <span class="n">load_image</span>
+<span class="o">&gt;&gt;&gt;</span><span class="n">cda</span> <span class="o">=</span> <span class="n">CDA</span><span class="p">()</span>
+<span class="o">&gt;&gt;&gt;</span><span class="n">image</span> <span class="o">=</span> <span class="n">load_image</span><span class="p">(</span><span class="s1">&#39;/data/image1.bmp&#39;</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span><span class="n">prediction</span> <span class="o">=</span> <span class="n">cda</span><span class="o">.</span><span class="n">get_prediction</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If you’d like to see the progress of your detection, pass the verbose=True keyword argument to the .get_prediction call, like:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="go">&gt;&gt;&gt;prediction = cda.get_prediction(image, verbose=True)</span>
+</pre></div>
+</div>
+<p>The CDA object will return a prediction object which here is assigned to the alias “prediction.” You can now save your results with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="go">&gt;&gt;&gt;prediction.to_csv(&#39;/data/results1.csv&#39;)</span>
+</pre></div>
+</div>
+<p>To see your detections plotted over the input image, call:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="go">&gt;&gt;&gt;prediction.show()</span>
+</pre></div>
+</div>
+<p>This should open a popup window on your system with the plot. For our Mars image, it will look like this:</p>
+<img alt="_images/plot1.png" src="_images/plot1.png" />
+<p>You’ll see the detector performs but isn’t perfect; the large crater in the lower left corner is conspicuous, but the model is designed to detect craters with 80 pixels of diameter or less; to capture larger craters, reduce the image resolution.</p>
+<p>Set the image resolution and save the image for later reference:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="go">&gt;&gt;&gt;prediction.set_scale(12.5)</span>
+<span class="go">&gt;&gt;&gt;prediction.show(save_plot=&#39;/data/myplot1.png&#39;)</span>
+</pre></div>
+</div>
+<p>And you’ve begun. Happy crater hunting!</p>
+<p>Read about the submodules to learn how to modify your CDA pipeline and quantify detection errors; for a more in-depth example, look at the <a class="reference external" href="https://github.com/AlliedToasters/PyCDA/blob/master/demo.ipynb">demo notebook</a></p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Getting Started</a><ul>
+<li><a class="reference internal" href="#installation">Installation</a></li>
+<li><a class="reference internal" href="#make-detections">Make Detections</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Welcome to PyCDA’s documentation!</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="cda.html"
+                        title="next chapter">Crater Detection Pipeline</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/start.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="cda.html" title="Crater Detection Pipeline"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to PyCDA’s documentation!"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PyCDA 0.1.13 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Michael Klear.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.1.
+    </div>
+  </body>
+</html>

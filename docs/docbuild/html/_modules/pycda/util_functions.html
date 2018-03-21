@@ -1,0 +1,236 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>pycda.util_functions &#8212; PyCDA 0.1.13 documentation</title>
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PyCDA 0.1.13 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../pycda.html" accesskey="U">pycda</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pycda.util_functions</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">PIL.Image</span> <span class="k">as</span> <span class="nn">Image</span>
+<span class="kn">from</span> <span class="nn">skimage</span> <span class="k">import</span> <span class="n">color</span>
+<span class="kn">import</span> <span class="nn">time</span><span class="o">,</span> <span class="nn">sys</span>
+
+<div class="viewcode-block" id="get_steps"><a class="viewcode-back" href="../../pycda.html#pycda.util_functions.get_steps">[docs]</a><span class="k">def</span> <span class="nf">get_steps</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="n">input_dimension</span><span class="p">,</span> <span class="n">output_dimension</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Calculates each step along a dimension of the tile.</span>
+<span class="sd">    length is the total length of the dimension, model resolution</span>
+<span class="sd">    is the detector&#39;s expected input length, and padding is the model&#39;s</span>
+<span class="sd">    required padding (zero if none.)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">steps</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">padding</span> <span class="o">=</span> <span class="p">(</span><span class="n">input_dimension</span> <span class="o">-</span> <span class="n">output_dimension</span><span class="p">)</span><span class="o">//</span><span class="mi">2</span>
+    <span class="n">remainder</span> <span class="o">=</span> <span class="p">(</span><span class="n">input_dimension</span> <span class="o">-</span> <span class="n">output_dimension</span><span class="p">)</span><span class="o">%</span><span class="mi">2</span>
+    <span class="n">step_size</span> <span class="o">=</span> <span class="n">output_dimension</span> <span class="o">-</span> <span class="n">remainder</span>
+    <span class="n">current_step</span> <span class="o">=</span> <span class="mi">0</span><span class="o">-</span><span class="n">padding</span>
+    <span class="n">steps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">current_step</span><span class="p">)</span>
+    <span class="n">current_step</span> <span class="o">+=</span> <span class="n">step_size</span>
+    <span class="c1">#Iterate until final prediction &quot;falls off&quot; edge of input image</span>
+    <span class="k">while</span> <span class="p">(</span><span class="n">steps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">step_size</span><span class="o">+</span><span class="n">padding</span><span class="p">))</span> <span class="o">&lt;</span> <span class="n">length</span><span class="p">:</span>
+        <span class="n">steps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">current_step</span><span class="p">)</span>
+        <span class="n">current_step</span> <span class="o">+=</span> <span class="n">step_size</span>
+    <span class="c1">#Situation with no overlap on final tile or small length;</span>
+    <span class="k">if</span> <span class="n">current_step</span><span class="o">+</span><span class="n">step_size</span><span class="o">+</span><span class="n">padding</span> <span class="o">==</span> <span class="n">length</span> <span class="ow">or</span> <span class="n">length</span> <span class="o">&lt;=</span> <span class="n">output_dimension</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">steps</span><span class="p">,</span> <span class="p">[</span><span class="n">step</span><span class="o">+</span><span class="n">padding</span><span class="o">-</span><span class="n">remainder</span> <span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="n">steps</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">final_step</span> <span class="o">=</span> <span class="n">length</span> <span class="o">-</span> <span class="n">step_size</span> <span class="o">-</span> <span class="n">padding</span> <span class="o">-</span> <span class="n">remainder</span>
+        <span class="n">steps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">final_step</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">steps</span><span class="p">,</span> <span class="p">[</span><span class="n">step</span><span class="o">+</span><span class="n">padding</span> <span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="n">steps</span><span class="p">]</span>
+    
+<div class="viewcode-block" id="crop_array"><a class="viewcode-back" href="../../pycda.html#pycda.util_functions.crop_array">[docs]</a><span class="k">def</span> <span class="nf">crop_array</span><span class="p">(</span><span class="n">input_array</span><span class="p">,</span> <span class="n">ylength</span><span class="p">,</span> <span class="n">xlength</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">orgn</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)):</span>
+    <span class="sd">&quot;&quot;&quot;Crops an image in numpy array format. Pads crops outside</span>
+<span class="sd">    of input image with zeros if necessary. If no y dimension</span>
+<span class="sd">    is specified, outputs a square image.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">xlength</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">xlength</span> <span class="o">=</span> <span class="n">ylength</span>
+    <span class="n">ylength</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ylength</span><span class="p">)</span>
+    <span class="n">xlength</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">xlength</span><span class="p">)</span>
+    <span class="n">orgn</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">orgn</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">orgn</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+    <span class="n">target</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">ylength</span><span class="p">,</span> <span class="n">xlength</span><span class="p">))</span>
+    <span class="c1">#slice ranges</span>
+    <span class="n">ymin</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">orgn</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">xmin</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">orgn</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">ymax</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">orgn</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">ylength</span><span class="p">,</span> <span class="n">input_array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">xmax</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">orgn</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">xlength</span><span class="p">,</span> <span class="n">input_array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">yslice</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">ymin</span><span class="p">,</span> <span class="n">ymax</span><span class="p">)</span>
+    <span class="n">xslice</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">xmin</span><span class="p">,</span> <span class="n">xmax</span><span class="p">)</span>
+    <span class="c1">#top, left, bottom, right pads</span>
+    <span class="n">tp</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="o">-</span><span class="n">orgn</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">lp</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="o">-</span><span class="n">orgn</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">bp</span> <span class="o">=</span> <span class="nb">max</span><span class="p">((</span><span class="n">ylength</span> <span class="o">+</span> <span class="n">orgn</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">tp</span> <span class="o">-</span> <span class="n">input_array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">rp</span> <span class="o">=</span> <span class="nb">max</span><span class="p">((</span><span class="n">xlength</span> <span class="o">+</span> <span class="n">orgn</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">lp</span> <span class="o">-</span> <span class="n">input_array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="c1">#insert slice into the right spot.</span>
+    <span class="n">target</span><span class="p">[</span><span class="n">tp</span><span class="p">:(</span><span class="n">ylength</span><span class="o">-</span><span class="n">bp</span><span class="p">),</span><span class="n">lp</span><span class="p">:(</span><span class="n">xlength</span><span class="o">-</span><span class="n">rp</span><span class="p">)]</span> <span class="o">=</span> <span class="n">input_array</span><span class="p">[</span><span class="n">yslice</span><span class="p">,</span> <span class="n">xslice</span><span class="p">]</span></div>
+    <span class="k">return</span> <span class="n">target</span>
+
+<div class="viewcode-block" id="make_batch"><a class="viewcode-back" href="../../pycda.html#pycda.util_functions.make_batch">[docs]</a><span class="k">def</span> <span class="nf">make_batch</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">crop_dims</span><span class="p">,</span> <span class="n">crops</span><span class="p">,</span> <span class="n">out_dims</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Assembles a batch for model.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">crop_dims</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="n">crop_dims</span> <span class="o">=</span> <span class="p">[</span><span class="n">crop_dims</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">crops</span><span class="p">))]</span>
+    <span class="n">batch</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">crop_coords</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">crops</span><span class="p">):</span>
+        <span class="n">next_image</span> <span class="o">=</span> <span class="n">crop_array</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">crop_dims</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">crop_dims</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="n">crop_coords</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">out_dims</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">next_image</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">out_dims</span><span class="p">:</span>
+                <span class="n">resized</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">fromarray</span><span class="p">(</span><span class="n">next_image</span><span class="p">)</span><span class="o">.</span><span class="n">resize</span><span class="p">((</span><span class="n">out_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">out_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+                <span class="n">next_image</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">resized</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">next_image</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="c1">#add color channel to greyscale image</span>
+            <span class="n">next_image</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">next_image</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">next_image</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="s1">&#39;uint8&#39;</span><span class="p">):</span>
+            <span class="c1">#Rescale pixel values</span>
+            <span class="n">next_image</span> <span class="o">=</span> <span class="n">next_image</span><span class="o">/</span><span class="mi">255</span>
+        <span class="n">batch</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">next_image</span><span class="p">)</span>
+    <span class="n">batch</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">batch</span>
+
+<div class="viewcode-block" id="get_crop_specs"><a class="viewcode-back" href="../../pycda.html#pycda.util_functions.get_crop_specs">[docs]</a><span class="k">def</span> <span class="nf">get_crop_specs</span><span class="p">(</span><span class="n">proposal</span><span class="p">,</span> <span class="n">classifier</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Converts a crater proposal into cropping function</span>
+<span class="sd">    arguments.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">lat</span> <span class="o">=</span> <span class="n">proposal</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">long</span> <span class="o">=</span> <span class="n">proposal</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">px</span> <span class="o">=</span> <span class="n">classifier</span><span class="o">.</span><span class="n">crater_pixels</span>
+    <span class="n">dim</span> <span class="o">=</span> <span class="n">classifier</span><span class="o">.</span><span class="n">input_dims</span>
+    <span class="c1">#&quot;Radius&quot; of image</span>
+    <span class="n">r_im</span> <span class="o">=</span> <span class="n">proposal</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="nb">min</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">px</span><span class="p">)</span>
+    <span class="c1">#get four parameters of image box</span>
+    <span class="n">upper</span> <span class="o">=</span> <span class="n">lat</span> <span class="o">-</span> <span class="n">r_im</span>
+    <span class="n">left</span> <span class="o">=</span> <span class="n">long</span> <span class="o">-</span> <span class="n">r_im</span></div>
+    <span class="k">return</span> <span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">upper</span><span class="p">),</span> <span class="nb">round</span><span class="p">(</span><span class="n">left</span><span class="p">)),</span> <span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">r_im</span><span class="p">),</span> <span class="nb">round</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">r_im</span><span class="p">))</span>
+
+<div class="viewcode-block" id="resolve_color_channels"><a class="viewcode-back" href="../../pycda.html#pycda.util_functions.resolve_color_channels">[docs]</a><span class="k">def</span> <span class="nf">resolve_color_channels</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Converts an image to the desired number of color</span>
+<span class="sd">    channels. Returns converted image.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">image</span> <span class="o">=</span> <span class="n">prediction</span><span class="o">.</span><span class="n">input_image</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">desired</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">input_channels</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">image_channels</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">image_channels</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">image_channels</span> <span class="o">==</span> <span class="n">desired</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">image</span>
+    <span class="k">elif</span> <span class="n">image_channels</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">desired</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">color</span><span class="o">.</span><span class="n">rgb2grey</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">image_channels</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">desired</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Working on feature to convert greyscale to RGB. &#39;</span>
+              <span class="s1">&#39;Try using a greyscale detector.&#39;</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;The color channels of the input image are &#39;</span>
+                    <span class="s1">&#39;not compatible with this model.&#39;</span>
+                   <span class="s1">&#39;look for a model with the proper number of &#39;</span>
+                   <span class="s1">&#39;color channels for your image.&#39;</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">image</span>
+
+<div class="viewcode-block" id="remove_ticks"><a class="viewcode-back" href="../../pycda.html#pycda.util_functions.remove_ticks">[docs]</a><span class="k">def</span> <span class="nf">remove_ticks</span><span class="p">(</span><span class="n">ax_obj</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;takes an ax object from matplotlib and removes ticks.&quot;&quot;&quot;</span>
+    <span class="n">ax_obj</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span>
+        <span class="n">axis</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span> 
+        <span class="n">which</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span> 
+        <span class="n">bottom</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
+        <span class="n">top</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
+        <span class="n">labelbottom</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
+        <span class="n">right</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
+        <span class="n">left</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
+        <span class="n">labelleft</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">ax_obj</span>
+
+
+<div class="viewcode-block" id="update_progress"><a class="viewcode-back" href="../../pycda.html#pycda.util_functions.update_progress">[docs]</a><span class="k">def</span> <span class="nf">update_progress</span><span class="p">(</span><span class="n">progress</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Displays or updates a console progress bar</span>
+<span class="sd">    Accepts a float between 0 and 1. Any int will be converted to a float.</span>
+<span class="sd">    A value under 0 represents a &#39;halt&#39;.</span>
+<span class="sd">    A value at 1 or bigger represents 100%</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">barLength</span> <span class="o">=</span> <span class="mi">25</span> <span class="c1"># Modify this to change the length of the progress bar</span>
+    <span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">progress</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">progress</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">progress</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">progress</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="n">progress</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;error: progress var must be float</span><span class="se">\r\n</span><span class="s2">&quot;</span>
+    <span class="k">if</span> <span class="n">progress</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">progress</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;Halt...</span><span class="se">\r\n</span><span class="s2">&quot;</span>
+    <span class="k">if</span> <span class="n">progress</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">progress</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;Done...</span><span class="se">\r\n</span><span class="s2">&quot;</span>
+    <span class="n">block</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">barLength</span><span class="o">*</span><span class="n">progress</span><span class="p">))</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\r</span><span class="s2">Progress: [</span><span class="si">{0}</span><span class="s2">] </span><span class="si">{1}</span><span class="s2">% </span><span class="si">{2}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span> <span class="s2">&quot;#&quot;</span><span class="o">*</span><span class="n">block</span> <span class="o">+</span> <span class="s2">&quot;-&quot;</span><span class="o">*</span><span class="p">(</span><span class="n">barLength</span><span class="o">-</span><span class="n">block</span><span class="p">),</span> <span class="nb">round</span><span class="p">(</span><span class="n">progress</span><span class="o">*</span><span class="mi">100</span><span class="p">),</span> <span class="n">status</span><span class="p">)</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">text</span><span class="p">)</span></div>
+    <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PyCDA 0.1.13 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../pycda.html" >pycda</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Michael Klear.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.1.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,253 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>pycda.detectors &#8212; PyCDA 0.1.13 documentation</title>
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PyCDA 0.1.13 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../pycda.html" accesskey="U">pycda</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pycda.detectors</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pkg_resources</span>
+<span class="kn">from</span> <span class="nn">pycda.util_functions</span> <span class="k">import</span> <span class="n">crop_array</span>
+
+<div class="viewcode-block" id="DetectorBaseClass"><a class="viewcode-back" href="../../pycda.html#pycda.detectors.DetectorBaseClass">[docs]</a><span class="k">class</span> <span class="nc">DetectorBaseClass</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;This is the base class for a detector object.</span>
+<span class="sd">    Attributes in the __init__ method should be specified </span>
+<span class="sd">    by child detectors.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Detectors must specify these attributes.&quot;&quot;&quot;</span>
+        <span class="c1">#Specify the dimensions of input image (x, y)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_dims</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="c1">#Three channels if RGB image; 1 if greyscale</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_channels</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="c1">#dimensions of prediction (x, y)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_dims</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="c1">#set to &quot;center&quot; if the output pixels map directly to input</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">in_out_map</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="c1">#Recommended batch size should be do-able for modest machines</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rec_batch_size</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="c1">#Set to &quot;pixel-wise&quot; if detector makes per-pixel prediction</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prediction_type</span> <span class="o">=</span> <span class="kc">None</span>
+        
+<div class="viewcode-block" id="DetectorBaseClass.predict"><a class="viewcode-back" href="../../pycda.html#pycda.detectors.DetectorBaseClass.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Predict method takes a batch and returns a batch of predictions.</span>
+<span class="sd">        Output should be a batch of single-channel images of shape:</span>
+<span class="sd">        (batch_size, self.output_dims[0], self.output_dims[1], 1)</span>
+<span class="sd">        &quot;&quot;&quot;</span></div></div>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Error: the detector base class cannot make predictions.&#39;</span><span class="p">)</span>
+        
+    
+<div class="viewcode-block" id="UnetDetector"><a class="viewcode-back" href="../../pycda.html#pycda.detectors.UnetDetector">[docs]</a><span class="k">class</span> <span class="nc">UnetDetector</span><span class="p">(</span><span class="n">DetectorBaseClass</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;U-net convolutional model to generate pixel-wise</span>
+<span class="sd">    prediction. Its output is a per-pixel likelihood that</span>
+<span class="sd">    a given pixel is a part of a crater surface feature.</span>
+<span class="sd">    Single color channel (grayscale).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+        <span class="kn">from</span> <span class="nn">keras.models</span> <span class="k">import</span> <span class="n">load_model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_dims</span> <span class="o">=</span> <span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="mi">256</span><span class="p">)</span>
+        <span class="c1">#one color channel; greyscale</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_channels</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_dims</span> <span class="o">=</span> <span class="p">(</span><span class="mi">172</span><span class="p">,</span> <span class="mi">172</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">in_out_map</span> <span class="o">=</span> <span class="s1">&#39;center&#39;</span>
+        <span class="c1">#small batches due to high memory requirements.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rec_batch_size</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prediction_type</span> <span class="o">=</span> <span class="s1">&#39;pixel-wise&#39;</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">pkg_resources</span><span class="o">.</span><span class="n">resource_filename</span><span class="p">(</span><span class="s1">&#39;pycda&#39;</span><span class="p">,</span> <span class="s1">&#39;models/unet_light_model.h5&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">load_model</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        
+<div class="viewcode-block" id="UnetDetector.predict"><a class="viewcode-back" href="../../pycda.html#pycda.detectors.UnetDetector.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;returns a batch of random-pixel images with appropriate shape.&quot;&quot;&quot;</span></div></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+        
+<div class="viewcode-block" id="TinyDetector"><a class="viewcode-back" href="../../pycda.html#pycda.detectors.TinyDetector">[docs]</a><span class="k">class</span> <span class="nc">TinyDetector</span><span class="p">(</span><span class="n">DetectorBaseClass</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A tiny version of U-Net downsized for speed. </span>
+<span class="sd">    Its output is a per-pixel likelihood that</span>
+<span class="sd">    a given pixel is a part of a crater surface feature.</span>
+<span class="sd">    Single color channel (grayscale).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+        <span class="kn">from</span> <span class="nn">keras.models</span> <span class="k">import</span> <span class="n">load_model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_dims</span> <span class="o">=</span> <span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="mi">256</span><span class="p">)</span>
+        <span class="c1">#one color channel; greyscale</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_channels</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_dims</span> <span class="o">=</span> <span class="p">(</span><span class="mi">172</span><span class="p">,</span> <span class="mi">172</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">in_out_map</span> <span class="o">=</span> <span class="s1">&#39;center&#39;</span>
+        <span class="c1">#bigger batches due to smaller model size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rec_batch_size</span> <span class="o">=</span> <span class="mi">12</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prediction_type</span> <span class="o">=</span> <span class="s1">&#39;pixel-wise&#39;</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">pkg_resources</span><span class="o">.</span><span class="n">resource_filename</span><span class="p">(</span><span class="s1">&#39;pycda&#39;</span><span class="p">,</span> <span class="s1">&#39;models/tinynet.h5&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">load_model</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        
+<div class="viewcode-block" id="TinyDetector.predict"><a class="viewcode-back" href="../../pycda.html#pycda.detectors.TinyDetector.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;returns a batch of random-pixel images with appropriate shape.&quot;&quot;&quot;</span></div></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+
+<div class="viewcode-block" id="CustomDetector"><a class="viewcode-back" href="../../pycda.html#pycda.detectors.CustomDetector">[docs]</a><span class="k">class</span> <span class="nc">CustomDetector</span><span class="p">(</span><span class="n">DetectorBaseClass</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;This class allows a user to load a custom detection</span>
+<span class="sd">    model into PyCDA. PyCDA will automatically detect input</span>
+<span class="sd">    and output dimensions. All models are channels-last;</span>
+<span class="sd">    channels-first is not currently supported.</span>
+<span class="sd">    You should specify recommended batch size.</span>
+<span class="sd">    (if not specified, set to 1.)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_path</span><span class="p">,</span> <span class="n">rec_batch_size</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">in_out_map</span> <span class="o">=</span> <span class="s1">&#39;center&#39;</span><span class="p">):</span>
+        <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+        <span class="kn">from</span> <span class="nn">keras.models</span> <span class="k">import</span> <span class="n">load_model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">load_model</span><span class="p">(</span><span class="n">model_path</span><span class="p">)</span>
+        <span class="c1">#Get input shape from input layer</span>
+        <span class="n">input_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_dims</span> <span class="o">=</span> <span class="n">input_layer</span><span class="o">.</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+        <span class="c1">#Get color channels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_channels</span> <span class="o">=</span> <span class="n">input_layer</span><span class="o">.</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+        <span class="c1">#Get output dimensions</span>
+        <span class="n">output_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_dims</span> <span class="o">=</span> <span class="n">output_layer</span><span class="o">.</span><span class="n">output_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">rec_batch_size</span> <span class="o">=</span> <span class="n">rec_batch_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">in_out_map</span> <span class="o">=</span> <span class="n">in_out_map</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prediction_type</span> <span class="o">=</span> <span class="s1">&#39;pixel-wise&#39;</span>
+        
+<div class="viewcode-block" id="CustomDetector.predict"><a class="viewcode-back" href="../../pycda.html#pycda.detectors.CustomDetector.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;returns a batch of random-pixel images with appropriate shape.&quot;&quot;&quot;</span></div></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+    
+<span class="k">class</span> <span class="nc">_DummyDetector</span><span class="p">(</span><span class="n">DetectorBaseClass</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The dummy detector is used for testing. It returns predictions</span>
+<span class="sd">    when called; the predictions contain random values between 0 and 1,</span>
+<span class="sd">    in the dimensions specified at initialization.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_dims</span><span class="o">=</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="mi">256</span><span class="p">),</span> <span class="n">output_dims</span><span class="o">=</span><span class="p">(</span><span class="mi">172</span><span class="p">,</span> <span class="mi">172</span><span class="p">),</span> <span class="n">n_channels</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_dims</span> <span class="o">=</span> <span class="n">input_dims</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_channels</span> <span class="o">=</span> <span class="n">n_channels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_dims</span> <span class="o">=</span> <span class="n">output_dims</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">in_out_map</span> <span class="o">=</span> <span class="s1">&#39;center&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rec_batch_size</span> <span class="o">=</span> <span class="n">batch_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prediction_type</span> <span class="o">=</span> <span class="s1">&#39;pixel-wise&#39;</span>
+        
+    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;returns a batch of random-pixel images with appropriate shape.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">batch</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_dims</span>
+        <span class="k">except</span> <span class="ne">AssertionError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;input image shape must match detector.input_dims&#39;</span><span class="p">)</span>
+        <span class="n">predictions</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">ypadding</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">//</span><span class="mi">2</span>
+        <span class="n">xpadding</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">//</span><span class="mi">2</span>
+        <span class="k">for</span> <span class="n">img</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">:</span>
+            <span class="n">image</span> <span class="o">=</span> <span class="n">img</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="n">prediction</span> <span class="o">=</span> <span class="n">crop_array</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">orgn</span><span class="o">=</span><span class="p">(</span><span class="n">ypadding</span><span class="p">,</span><span class="n">xpadding</span><span class="p">))</span>
+            <span class="c1">#prediction = np.random.rand(self.output_dims[0], self.output_dims[1])</span>
+            <span class="n">prediction</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">predictions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">prediction</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">predictions</span><span class="p">)</span>
+    
+        
+<div class="viewcode-block" id="get"><a class="viewcode-back" href="../../pycda.html#pycda.detectors.get">[docs]</a><span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="n">identifier</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;handles argument to CDA pipeline for detector specification.</span>
+<span class="sd">    returns an initialized detector.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">model_dictionary</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;dummy&#39;</span><span class="p">:</span> <span class="n">_DummyDetector</span><span class="p">,</span>
+        <span class="s1">&#39;unet&#39;</span><span class="p">:</span> <span class="n">UnetDetector</span><span class="p">,</span>
+        <span class="s1">&#39;tiny&#39;</span><span class="p">:</span> <span class="n">TinyDetector</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="n">identifier</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;You must specify a detector model.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">identifier</span><span class="p">,</span> <span class="n">DetectorBaseClass</span><span class="p">):</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">identifier</span>
+        <span class="k">return</span> <span class="n">model</span>
+    <span class="k">elif</span> <span class="n">identifier</span> <span class="ow">in</span> <span class="n">model_dictionary</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">model_dictionary</span><span class="p">[</span><span class="n">identifier</span><span class="p">]()</span>
+    <span class="k">elif</span> <span class="n">callable</span><span class="p">(</span><span class="n">identifier</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">identifier</span><span class="p">(),</span> <span class="n">DetectorBaseClass</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">identifier</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;custom detectors must inherit&#39;</span>
+                           <span class="s1">&#39;from DetectorBaseClass, which can be&#39;</span>
+                           <span class="s1">&#39;imported from detectors.py&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Could not interpret &#39;</span>
+                         <span class="s1">&#39;detection model identifier: </span><span class="si">{}</span><span class="s1"> </span><span class="se">\n</span><span class="s1">&#39;</span>
+                         <span class="s1">&#39;try one of these keywords: </span><span class="si">{}</span><span class="s1">&#39;</span></div>
+                         <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">identifier</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">model_dictionary</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+        
+        
+        
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PyCDA 0.1.13 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../pycda.html" >pycda</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Michael Klear.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.1.
+    </div>
+  </body>
+</html>

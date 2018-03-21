@@ -1,0 +1,355 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>pycda &#8212; PyCDA 0.1.13 documentation</title>
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">PyCDA 0.1.13 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pycda</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">skimage</span> <span class="k">import</span> <span class="n">io</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">PIL</span> <span class="k">import</span> <span class="n">Image</span>
+<span class="kn">import</span> <span class="nn">gc</span>
+<span class="kn">from</span> <span class="nn">pycda</span> <span class="k">import</span> <span class="n">detectors</span>
+<span class="kn">from</span> <span class="nn">pycda</span> <span class="k">import</span> <span class="n">extractors</span>
+<span class="kn">from</span> <span class="nn">pycda</span> <span class="k">import</span> <span class="n">classifiers</span>
+<span class="kn">from</span> <span class="nn">pycda</span> <span class="k">import</span> <span class="n">predictions</span>
+<span class="kn">from</span> <span class="nn">pycda</span> <span class="k">import</span> <span class="n">util_functions</span>
+<span class="kn">from</span> <span class="nn">pycda.util_functions</span> <span class="k">import</span> <span class="n">update_progress</span><span class="p">,</span> <span class="n">resolve_color_channels</span><span class="p">,</span> <span class="n">get_steps</span><span class="p">,</span> <span class="n">get_crop_specs</span><span class="p">,</span> <span class="n">crop_array</span><span class="p">,</span> <span class="n">remove_ticks</span><span class="p">,</span> <span class="n">make_batch</span>
+
+<div class="viewcode-block" id="CDA"><a class="viewcode-back" href="../cda.html#pycda.CDA">[docs]</a><span class="k">class</span> <span class="nc">CDA</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;CDA is the crater detection model pipeline. Its three</span>
+<span class="sd">    main components are the detector, the extractor, and</span>
+<span class="sd">    the classifier; with no keywords, will initialize with</span>
+<span class="sd">    some basic models with general applicability and fast</span>
+<span class="sd">    performance.</span>
+<span class="sd">    </span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        detector (str, detector object): The detector model used by</span>
+<span class="sd">            pipeline. Accepted text arguments are:</span>
+<span class="sd">            &#39;tiny&#39; : default, fast, performant detector</span>
+<span class="sd">            &#39;unet&#39; : similar model to tiny, more robust, slower</span>
+<span class="sd">            &#39;dummy&#39;: does not make detections, used for testing.</span>
+<span class="sd">    </span>
+<span class="sd">        extractor (str, extractor object): The extractor model used by</span>
+<span class="sd">            pipeline. Accepted text arguments are:</span>
+<span class="sd">            &#39;fast_circle&#39; : default, converts detections into circles</span>
+<span class="sd">            &#39;watershed&#39; : uses watershed segmentation to generate proposals</span>
+<span class="sd">            &#39;dummy&#39; : does not make extractions, used for testing</span>
+
+<span class="sd">        classifier (str, classifier object): The classifier model used</span>
+<span class="sd">            by pipeline. Accepted string arguments are:</span>
+<span class="sd">            &#39;convolution&#39; : default, uses a convolutional neural net model</span>
+<span class="sd">            &#39;none&#39; : use no classifier (None type also accepted)</span>
+<span class="sd">            &#39;dummy&#39; : assigns random likelihoods, used for testing.</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detector</span><span class="o">=</span><span class="s1">&#39;tiny&#39;</span><span class="p">,</span> <span class="n">extractor</span><span class="o">=</span><span class="s1">&#39;fast_circle&#39;</span><span class="p">,</span> <span class="n">classifier</span><span class="o">=</span><span class="s1">&#39;convolution&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;detector, extractor, and classifier keywords can accept initialized</span>
+<span class="sd">        models or certain strings. See CDA class docstring</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1">#initialize the models.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">detector</span> <span class="o">=</span> <span class="n">detectors</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">detector</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">extractor</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">extractor</span> <span class="o">=</span> <span class="p">[</span><span class="n">extractors</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ex</span><span class="p">)</span> <span class="k">for</span> <span class="n">ex</span> <span class="ow">in</span> <span class="n">extractor</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">extractor</span> <span class="o">=</span> <span class="p">[</span><span class="n">extractors</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">extractor</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">classifier</span> <span class="o">=</span> <span class="n">classifiers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">classifier</span><span class="p">)</span>
+        <span class="c1">#track previous predictions.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">predictions</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span> <span class="nf">_get_prediction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_image</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Checks to see if prediction has been made on the same image.</span>
+<span class="sd">        If not found, creates a new prediction object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">prediction</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictions</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">prediction</span><span class="o">.</span><span class="n">input_image</span><span class="p">,</span> <span class="n">input_image</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">prediction</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">pass</span>
+        <span class="n">new_prediction</span> <span class="o">=</span> <span class="n">predictions</span><span class="o">.</span><span class="n">Prediction</span><span class="p">(</span><span class="n">input_image</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predictions</span><span class="p">),</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">predictions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_prediction</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">new_prediction</span>
+
+    <span class="k">def</span> <span class="nf">_prepare_detector</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prediction</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Gets prediction object ready for use by</span>
+<span class="sd">        the detector by populating coordinate lists.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">prediction</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Preparing detection steps...&#39;</span><span class="p">)</span>
+        
+        <span class="c1">#Calculate latitude steps</span>
+        <span class="n">height</span> <span class="o">=</span> <span class="n">prediction</span><span class="o">.</span><span class="n">input_image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">yin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">detector</span><span class="o">.</span><span class="n">input_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">yout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">detector</span><span class="o">.</span><span class="n">output_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">y_steps_in</span><span class="p">,</span> <span class="n">y_steps_out</span> <span class="o">=</span> <span class="n">get_steps</span><span class="p">(</span><span class="n">height</span><span class="p">,</span> <span class="n">yin</span><span class="p">,</span> <span class="n">yout</span><span class="p">)</span>
+        
+        <span class="c1">#Calculate longitude steps</span>
+        <span class="n">width</span> <span class="o">=</span> <span class="n">prediction</span><span class="o">.</span><span class="n">input_image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">xin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">detector</span><span class="o">.</span><span class="n">input_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">xout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">detector</span><span class="o">.</span><span class="n">output_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">x_steps_in</span><span class="p">,</span> <span class="n">x_steps_out</span> <span class="o">=</span> <span class="n">get_steps</span><span class="p">(</span><span class="n">width</span><span class="p">,</span> <span class="n">xin</span><span class="p">,</span> <span class="n">xout</span><span class="p">)</span>
+        
+        <span class="c1">#iterate through every step and record in prediction object</span>
+        <span class="k">for</span> <span class="n">ystep</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">y_steps_in</span><span class="p">,</span> <span class="n">y_steps_out</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">xstep</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">x_steps_in</span><span class="p">,</span> <span class="n">x_steps_out</span><span class="p">):</span>
+                <span class="c1">#Record ordered positional steps for input (lat, long)</span>
+                <span class="n">prediction</span><span class="o">.</span><span class="n">image_split_coords</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">ystep</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">xstep</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+                <span class="c1">#and for output (lat, long)</span>
+                <span class="n">prediction</span><span class="o">.</span><span class="n">det_split_coords</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">ystep</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">xstep</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+                
+        <span class="c1">#set all predictions status to False</span>
+        <span class="n">prediction</span><span class="o">.</span><span class="n">detections_made</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">prediction</span><span class="o">.</span><span class="n">image_split_coords</span><span class="p">)),</span> <span class="kc">False</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">prediction</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Done!</span><span class="se">\n</span><span class="s1">Detection will require </span><span class="si">{}</span><span class="s1"> steps&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">prediction</span><span class="o">.</span><span class="n">detections_made</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="n">prediction</span>
+    
+    <span class="k">def</span> <span class="nf">_batch_detect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prediction</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Generates batches to feed to detector,</span>
+<span class="sd">        gets detection maps, handles bookkeeping.</span>
+<span class="sd">        Returned prediction object has a completed detection</span>
+<span class="sd">        map.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Performing detections...&#39;</span><span class="p">)</span>
+        <span class="c1">#determine batch size</span>
+        <span class="k">if</span> <span class="n">batch_size</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">batch_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">detector</span><span class="o">.</span><span class="n">rec_batch_size</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">util_functions</span><span class="o">.</span><span class="n">resolve_color_channels</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">detector</span><span class="p">)</span>
+        <span class="n">crop_dims</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">detector</span><span class="o">.</span><span class="n">input_dims</span>
+        <span class="c1">#rescale color values for model if necessary</span>
+        <span class="k">if</span> <span class="n">image</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">:</span>
+            <span class="n">image</span> <span class="o">=</span> <span class="n">image</span><span class="o">/</span><span class="mi">255</span>
+        <span class="k">while</span> <span class="nb">any</span><span class="p">(</span><span class="o">~</span><span class="n">prediction</span><span class="o">.</span><span class="n">detections_made</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="n">progress</span> <span class="o">=</span> <span class="n">prediction</span><span class="o">.</span><span class="n">detections_made</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+                <span class="n">progress</span> <span class="o">=</span> <span class="n">progress</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">prediction</span><span class="o">.</span><span class="n">detections_made</span><span class="p">)</span>
+                <span class="n">update_progress</span><span class="p">(</span><span class="n">progress</span><span class="p">)</span>
+            <span class="c1">#Find next index range for detection</span>
+            <span class="n">first_index</span> <span class="o">=</span> <span class="n">prediction</span><span class="o">.</span><span class="n">detections_made</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="n">remaining_predictions</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">prediction</span><span class="o">.</span><span class="n">detections_made</span><span class="p">)</span> <span class="o">-</span> <span class="n">first_index</span>
+            <span class="n">last_index</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">first_index</span><span class="o">+</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">first_index</span><span class="o">+</span><span class="n">remaining_predictions</span><span class="p">)</span>
+            <span class="c1">#Record index range in slice object</span>
+            <span class="n">indices</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">first_index</span><span class="p">,</span> <span class="n">last_index</span><span class="p">)</span>
+            <span class="c1">#Get cropping coordinates</span>
+            <span class="n">crop_coords</span> <span class="o">=</span> <span class="n">prediction</span><span class="o">.</span><span class="n">image_split_coords</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span>
+            <span class="c1">#Build batch and predict</span>
+            <span class="n">batch</span> <span class="o">=</span> <span class="n">make_batch</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">crop_dims</span><span class="p">,</span> <span class="n">crop_coords</span><span class="p">)</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">detector</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+            <span class="c1">#Record detections to prediction object</span>
+            <span class="n">indices_enumerated</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">indices</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">indices</span><span class="o">.</span><span class="n">stop</span><span class="p">)</span>
+            <span class="n">prediction</span><span class="o">.</span><span class="n">_batch_record_detection</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">indices_enumerated</span><span class="p">)</span>
+            <span class="n">prediction</span><span class="o">.</span><span class="n">detections_made</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="c1">#delete duplicate image for memory management.</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="n">update_progress</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">del</span> <span class="n">image</span>
+        <span class="k">return</span> <span class="n">prediction</span>
+    
+    <span class="k">def</span> <span class="nf">_batch_classify</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prediction</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Performs batch classifications on crater proposals.</span>
+<span class="sd">        Updates the likelihood values for prediction proposals.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;performing classifications...&#39;</span><span class="p">)</span>
+        <span class="c1">#determine batch size</span>
+        <span class="k">if</span> <span class="n">batch_size</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">batch_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">classifier</span><span class="o">.</span><span class="n">rec_batch_size</span>
+        <span class="n">dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">classifier</span><span class="o">.</span><span class="n">input_dims</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">prediction</span><span class="o">.</span><span class="n">proposals</span>
+        <span class="n">iter_row</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">iterrows</span><span class="p">()</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">resolve_color_channels</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">classifier</span><span class="p">)</span>
+        <span class="c1">#tracks all results</span>
+        <span class="n">likelihoods</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1">#Will switch when iteration is through</span>
+        <span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">while</span> <span class="ow">not</span> <span class="n">done</span><span class="p">:</span>
+            <span class="c1">#records cropping coords for batch maker</span>
+            <span class="n">crops</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">crop_dims</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">crops</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">batch_size</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">i</span><span class="p">,</span> <span class="n">row</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">iter_row</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                        <span class="n">progress</span> <span class="o">=</span> <span class="n">i</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+                        <span class="n">update_progress</span><span class="p">(</span><span class="n">progress</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+                    <span class="n">done</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">break</span>
+                <span class="n">proposal</span> <span class="o">=</span> <span class="n">row</span><span class="p">[[</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="s1">&#39;long&#39;</span><span class="p">,</span> <span class="s1">&#39;diameter&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">values</span>
+                <span class="n">crop_orgn</span><span class="p">,</span> <span class="n">crop_dim</span> <span class="o">=</span> <span class="n">get_crop_specs</span><span class="p">(</span><span class="n">proposal</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">classifier</span><span class="p">)</span>
+                <span class="n">crops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">crop_orgn</span><span class="p">)</span>
+                <span class="n">crop_dims</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">crop_dim</span><span class="p">)</span>
+            <span class="n">batch</span> <span class="o">=</span> <span class="n">make_batch</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">crop_dims</span><span class="p">,</span> <span class="n">crops</span><span class="p">,</span> <span class="n">out_dims</span><span class="o">=</span><span class="n">dim</span><span class="p">)</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">classifier</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+            <span class="n">likelihoods</span> <span class="o">+=</span> <span class="p">[</span><span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">]</span>
+        <span class="n">prediction</span><span class="o">.</span><span class="n">proposals</span><span class="p">[</span><span class="s1">&#39;likelihood&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">likelihoods</span>
+        <span class="c1">#delete temporary image from memory</span>
+        <span class="k">del</span> <span class="n">image</span>
+        <span class="k">return</span> <span class="n">prediction</span>
+
+    <span class="k">def</span> <span class="nf">_predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_image</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calls a series of functions to perform prediction on input</span>
+<span class="sd">        image. Returns a prediction object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_image</span><span class="p">,</span> <span class="n">CDAImage</span><span class="p">):</span>
+            <span class="n">input_image</span> <span class="o">=</span> <span class="n">input_image</span><span class="o">.</span><span class="n">as_array</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_image</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">]))):</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">input_image</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">input_image</span><span class="p">)</span>
+        <span class="n">prediction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_prediction</span><span class="p">(</span><span class="n">input_image</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">prediction</span><span class="o">.</span><span class="n">detections_made</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;detections already made!&#39;</span><span class="p">)</span>
+            <span class="n">prediction</span><span class="o">.</span><span class="n">proposals</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="s1">&#39;long&#39;</span><span class="p">,</span> <span class="s1">&#39;diameter&#39;</span><span class="p">,</span> <span class="s1">&#39;likelihood&#39;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">prediction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_detector</span><span class="p">(</span><span class="n">prediction</span><span class="p">)</span>
+        <span class="n">prediction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch_detect</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">ext</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">extractor</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">ext</span><span class="p">(</span><span class="n">prediction</span><span class="o">.</span><span class="n">detection_map</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+            <span class="n">prediction</span><span class="o">.</span><span class="n">proposals</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">prediction</span><span class="o">.</span><span class="n">proposals</span><span class="p">,</span> <span class="n">result</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="c1">#Reset proposal indices</span>
+        <span class="n">prediction</span><span class="o">.</span><span class="n">proposals</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">prediction</span><span class="o">.</span><span class="n">proposals</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="nb">len</span><span class="p">(</span><span class="n">prediction</span><span class="o">.</span><span class="n">proposals</span><span class="p">),</span> 
+                <span class="s1">&#39; proposals extracted from detection map.</span><span class="se">\n</span><span class="s1">&#39;</span>
+            <span class="p">)</span>
+        <span class="n">prediction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch_classify</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">prediction</span><span class="o">.</span><span class="n">proposals</span><span class="o">.</span><span class="n">likelihood</span> <span class="o">&gt;</span> <span class="n">prediction</span><span class="o">.</span><span class="n">threshold</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span>
+                <span class="s1">&#39; objects classified as craters.</span><span class="se">\n</span><span class="s1">&#39;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">prediction</span>
+    
+<div class="viewcode-block" id="CDA.predict"><a class="viewcode-back" href="../cda.html#pycda.CDA.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_image</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=.</span><span class="mi">5</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Performs a detection on input_image. Returns a pandas</span>
+<span class="sd">        dataframe with detections.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">prediction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict</span><span class="p">(</span><span class="n">input_image</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">prediction</span><span class="o">.</span><span class="n">_predict</span><span class="p">(</span><span class="n">threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="CDA.get_prediction"><a class="viewcode-back" href="../cda.html#pycda.CDA.get_prediction">[docs]</a>    <span class="k">def</span> <span class="nf">get_prediction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_image</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Performs a detection on input_image. Returns a </span>
+<span class="sd">        prediction object.</span>
+<span class="sd">        &quot;&quot;&quot;</span></div></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict</span><span class="p">(</span><span class="n">input_image</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="CDAImage"><a class="viewcode-back" href="../cda.html#pycda.CDAImage">[docs]</a><span class="k">class</span> <span class="nc">CDAImage</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;CDA image object; image stored as array; .show()</span>
+<span class="sd">    method allows for easy viewing.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image</span><span class="p">):</span>
+        <span class="c1">#Common use case: convert from array to PIL image</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">]))):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="n">image</span>
+        <span class="c1">#In case another CDAImage object passed in</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">image</span>
+        <span class="c1">#In case PIL image passed in</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">Image</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)))):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Image object constructor does not&#39;</span>
+                            <span class="s1">&#39; understand input image type.&#39;</span><span class="p">)</span>
+     
+<div class="viewcode-block" id="CDAImage.show"><a class="viewcode-back" href="../cda.html#pycda.CDAImage.show">[docs]</a>    <span class="k">def</span> <span class="nf">show</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">show_ticks</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Displays the input image by plotting raster&quot;&quot;&quot;</span>
+        <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">();</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;Greys_r&#39;</span><span class="p">);</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">show_ticks</span><span class="p">:</span>
+            <span class="n">ax</span> <span class="o">=</span> <span class="n">remove_ticks</span><span class="p">(</span><span class="n">ax</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">();</span></div>
+        <span class="k">return</span> <span class="kc">None</span>
+    
+<div class="viewcode-block" id="CDAImage.as_array"><a class="viewcode-back" href="../cda.html#pycda.CDAImage.as_array">[docs]</a>    <span class="k">def</span> <span class="nf">as_array</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the image as a numpy array.&quot;&quot;&quot;</span></div></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">image</span>
+    
+<div class="viewcode-block" id="load_image"><a class="viewcode-back" href="../cda.html#pycda.load_image">[docs]</a><span class="k">def</span> <span class="nf">load_image</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;load an image from the input filename path.</span>
+<span class="sd">    returns a CDAImage object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">image</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">])))</span>
+    <span class="k">except</span> <span class="ne">AssertionError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Could not load file into numpy array.&#39;</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">CDAImage</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">PyCDA 0.1.13 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Michael Klear.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.1.
+    </div>
+  </body>
+</html>

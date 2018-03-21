@@ -1,0 +1,297 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>pycda.extractors &#8212; PyCDA 0.1.13 documentation</title>
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PyCDA 0.1.13 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../pycda.html" accesskey="U">pycda</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pycda.extractors</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">skimage</span> <span class="k">import</span> <span class="n">measure</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="k">import</span> <span class="n">ndimage</span> <span class="k">as</span> <span class="n">ndi</span>
+<span class="kn">from</span> <span class="nn">scipy.ndimage</span> <span class="k">import</span> <span class="n">find_objects</span>
+<span class="kn">from</span> <span class="nn">skimage.morphology</span> <span class="k">import</span> <span class="n">watershed</span>
+<span class="kn">from</span> <span class="nn">skimage.feature</span> <span class="k">import</span> <span class="n">peak_local_max</span>
+<span class="kn">from</span> <span class="nn">math</span> <span class="k">import</span> <span class="n">sqrt</span><span class="p">,</span> <span class="n">pi</span>
+<span class="kn">from</span> <span class="nn">pycda.util_functions</span> <span class="k">import</span> <span class="n">update_progress</span>
+
+<div class="viewcode-block" id="ExtractorBaseClass"><a class="viewcode-back" href="../../pycda.html#pycda.extractors.ExtractorBaseClass">[docs]</a><span class="k">class</span> <span class="nc">ExtractorBaseClass</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Base class for an extractor object. The extractor</span>
+<span class="sd">    converts a prediction map into a list of crater candidates.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+    
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span></div>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Extractor base class cannot perform extraction.&#39;</span><span class="p">)</span>
+    
+    
+<div class="viewcode-block" id="FastCircles"><a class="viewcode-back" href="../../pycda.html#pycda.extractors.FastCircles">[docs]</a><span class="k">class</span> <span class="nc">FastCircles</span><span class="p">(</span><span class="n">ExtractorBaseClass</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Circle Extractor assumes all objects in detection map are</span>
+<span class="sd">    circles. It identifies groups of pixels, computes</span>
+<span class="sd">    their mean location (centroid), and diameter based on</span>
+<span class="sd">    the number of pixels in the group. Takes a prediction object</span>
+<span class="sd">    and returns a list of proposals.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sensitivity</span><span class="o">=.</span><span class="mi">5</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;sensitivity is a hyperparameter that adjusts the extractor&#39;s</span>
+<span class="sd">        sensitivity to pixels with smaller values; a higher sensitivity</span>
+<span class="sd">        tends to yeild larger crater candidates, with a risk of merging</span>
+<span class="sd">        adjacent craters. A lower sensitivity can exclude weak detections.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">sensitivity</span>
+    
+    <span class="k">def</span> <span class="nf">_get_label_map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detection_map</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=.</span><span class="mi">5</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Takes a pixel-wise prediction map and returns a matrix</span>
+<span class="sd">        of unique objects on the map. Threshold is a hyperparameter</span>
+<span class="sd">        for crater/non-crater pixel determination. Higher threshold</span>
+<span class="sd">        may help distinguish merged crater detections.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;getting label map...&#39;</span><span class="p">)</span>
+        <span class="n">filtered</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">detection_map</span> <span class="o">&gt;</span> <span class="n">threshold</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="n">measure</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="n">filtered</span><span class="p">,</span> <span class="n">neighbors</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">background</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;done!&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">labels</span>
+
+    <span class="k">def</span> <span class="nf">_get_crater_pixels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label_matrix</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Takes a label matrix and a number and gets all the</span>
+<span class="sd">        pixel locations from that crater object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argwhere</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">label_matrix</span><span class="o">==</span><span class="n">idx</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="nf">_get_pixel_objects</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label_matrix</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Takes the label matrix and returns a list of objects.</span>
+<span class="sd">        Each element in the list is a unique object, defined</span>
+<span class="sd">        by an array of pixel locations belonging to it.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">objects</span> <span class="o">=</span> <span class="n">find_objects</span><span class="p">(</span><span class="n">label_matrix</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">objects</span><span class="p">:</span>
+            <span class="n">slice_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argwhere</span><span class="p">(</span><span class="n">label_matrix</span><span class="p">[</span><span class="n">prop</span><span class="p">])</span>
+            <span class="n">slice_</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">prop</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">start</span>
+            <span class="n">slice_</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">prop</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">start</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">slice_</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="nf">_get_crater_proposals</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detection_map</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Takes a pixel-wise prediction map and returns a list of</span>
+<span class="sd">        crater proposals as lat, long, diameter.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">label_matrix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_label_map</span><span class="p">(</span><span class="n">detection_map</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+        <span class="n">proposals</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_pixel_objects</span><span class="p">(</span><span class="n">label_matrix</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Defining proposals as circles...&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">proposal</span> <span class="ow">in</span> <span class="n">proposals</span><span class="p">:</span>
+            <span class="n">area</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">proposal</span><span class="p">)</span>
+            <span class="n">y_locs</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">proposal</span><span class="p">]</span>
+            <span class="n">x_locs</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">proposal</span><span class="p">]</span>
+            <span class="n">y_mean</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">y_locs</span><span class="p">))</span>
+            <span class="n">x_mean</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">x_locs</span><span class="p">))</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">sqrt</span><span class="p">(</span><span class="n">area</span><span class="o">/</span><span class="n">pi</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">d</span> <span class="o">&gt;</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">y_mean</span><span class="p">,</span> <span class="n">x_mean</span><span class="p">,</span> <span class="n">d</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;done!&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
+    
+    
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detection_map</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="s1">&#39;long&#39;</span><span class="p">,</span> <span class="s1">&#39;diameter&#39;</span><span class="p">]</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_crater_proposals</span><span class="p">(</span><span class="n">detection_map</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+        <span class="n">proposals</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span> <span class="o">=</span> <span class="n">cols</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">result</span><span class="p">)</span>
+        <span class="n">proposals</span><span class="p">[</span><span class="s1">&#39;likelihood&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span></div>
+        <span class="k">return</span> <span class="n">proposals</span>
+    
+<div class="viewcode-block" id="WatershedCircles"><a class="viewcode-back" href="../../pycda.html#pycda.extractors.WatershedCircles">[docs]</a><span class="k">class</span> <span class="nc">WatershedCircles</span><span class="p">(</span><span class="n">ExtractorBaseClass</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Takes a prediction object after detection and returns a </span>
+<span class="sd">    list of crater proposals (by calling object on prediction.)</span>
+<span class="sd">    Performs a &#39;watershed&#39; analysis:</span>
+<span class="sd">    -transforms image to binary for some threshold (default .5)</span>
+<span class="sd">    -transforms pixel values to min distance to background (0) pixel</span>
+<span class="sd">    -uses local maxima as points for &#39;water sources&#39;</span>
+<span class="sd">    -uses negative distance values to build &#39;basins&#39;</span>
+<span class="sd">    -fills &#39;basins&#39; with water from sources</span>
+<span class="sd">    -uses the boundaries where &#39;water meets&#39; as segment boundaries</span>
+<span class="sd">    -objects are converted to circles whose center is the centroid of the</span>
+<span class="sd">    bounding box of the object, diameter is the mean(width, height) of bounding</span>
+<span class="sd">    box.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sensitivity</span><span class="o">=.</span><span class="mi">5</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;sensitivity is a hyperparameter that adjusts the extractor&#39;s</span>
+<span class="sd">        sensitivity to pixels with smaller values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">sensitivity</span>
+    
+    <span class="k">def</span> <span class="nf">_get_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detection_map</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Handles transformations and extracts labels</span>
+<span class="sd">        for each object identified.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1">#Convert to binary pixel values</span>
+        <span class="n">binary</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">detection_map</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="c1">#Distance transform</span>
+        <span class="n">distance</span> <span class="o">=</span> <span class="n">ndi</span><span class="o">.</span><span class="n">distance_transform_edt</span><span class="p">(</span><span class="n">binary</span><span class="p">)</span>
+        <span class="c1">#Identify local maxima</span>
+        <span class="n">local_maxi</span> <span class="o">=</span> <span class="n">peak_local_max</span><span class="p">(</span><span class="n">distance</span><span class="p">,</span> <span class="n">indices</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                    <span class="n">labels</span><span class="o">=</span><span class="n">binary</span><span class="p">)</span>
+        <span class="c1">#Get object labels</span>
+        <span class="n">markers</span> <span class="o">=</span> <span class="n">ndi</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="n">local_maxi</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="n">watershed</span><span class="p">(</span><span class="o">-</span><span class="n">distance</span><span class="p">,</span> <span class="n">markers</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">binary</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">labels</span>
+
+    <span class="k">def</span> <span class="nf">_get_crater_proposals</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detection_map</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Converts labeled objects into circle figures.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_labels</span><span class="p">(</span><span class="n">detection_map</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+        <span class="n">objs</span> <span class="o">=</span> <span class="n">find_objects</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
+        <span class="n">proposals</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">objs</span><span class="p">:</span>
+            <span class="n">centy</span> <span class="o">=</span> <span class="p">(</span><span class="n">obj</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">stop</span><span class="o">+</span><span class="n">obj</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">start</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span>
+            <span class="n">centx</span> <span class="o">=</span> <span class="p">(</span><span class="n">obj</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">stop</span><span class="o">+</span><span class="n">obj</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">start</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span>
+            <span class="n">proposal</span> <span class="o">=</span> <span class="p">[</span><span class="n">centy</span><span class="p">,</span> <span class="n">centx</span><span class="p">]</span>
+            <span class="n">dy</span> <span class="o">=</span> <span class="n">obj</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">stop</span> <span class="o">-</span> <span class="n">obj</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">start</span>
+            <span class="n">dx</span> <span class="o">=</span> <span class="n">obj</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">stop</span> <span class="o">-</span> <span class="n">obj</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">start</span>
+            <span class="n">diameter</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="n">dy</span><span class="p">,</span> <span class="n">dx</span><span class="p">])</span>
+            <span class="n">proposal</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">diameter</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">diameter</span> <span class="o">&gt;</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="n">proposals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">proposal</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">proposals</span>
+    
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detection_map</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="s1">&#39;long&#39;</span><span class="p">,</span> <span class="s1">&#39;diameter&#39;</span><span class="p">]</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_crater_proposals</span><span class="p">(</span><span class="n">detection_map</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+        <span class="n">proposals</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span> <span class="o">=</span> <span class="n">cols</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">result</span><span class="p">)</span>
+        <span class="n">proposals</span><span class="p">[</span><span class="s1">&#39;likelihood&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span></div>
+        <span class="k">return</span> <span class="n">proposals</span>
+
+<div class="viewcode-block" id="DummyExtractor"><a class="viewcode-back" href="../../pycda.html#pycda.extractors.DummyExtractor">[docs]</a><span class="k">class</span> <span class="nc">DummyExtractor</span><span class="p">(</span><span class="n">ExtractorBaseClass</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Dummy Extractor takes an input image and returns a list of</span>
+<span class="sd">    random predictions for testing. Proposals are a list of tuples.</span>
+<span class="sd">    Each tuple in the list has the crater proposal as (in pixels):</span>
+<span class="sd">    (x position, y position, diameter).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">width</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">height</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">n_proposals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">50</span><span class="p">)</span>
+        <span class="n">proposals</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_proposals</span><span class="p">):</span>
+            <span class="n">x_pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">width</span><span class="p">)</span>
+            <span class="n">y_pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">height</span><span class="p">)</span>
+            <span class="n">diameter</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">width</span><span class="o">+</span><span class="n">height</span><span class="o">/</span><span class="mi">20</span><span class="p">)</span>
+            <span class="n">likelihood</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">proposals</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">x_pos</span><span class="p">,</span> <span class="n">y_pos</span><span class="p">,</span> <span class="n">diameter</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">proposals</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;diameter&#39;</span><span class="p">,</span> <span class="s1">&#39;likelihood&#39;</span><span class="p">],</span> <span class="n">data</span><span class="o">=</span><span class="n">proposals</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;I am a dummy extractor!&#39;</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">proposals</span>    
+    
+    
+<div class="viewcode-block" id="get"><a class="viewcode-back" href="../../pycda.html#pycda.extractors.get">[docs]</a><span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="n">identifier</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;handles argument to CDA pipeline for extractor specification.</span>
+<span class="sd">    returns an initialized extractor.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">model_dictionary</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;dummy&#39;</span><span class="p">:</span> <span class="n">DummyExtractor</span><span class="p">,</span>
+        <span class="s1">&#39;fast_circle&#39;</span><span class="p">:</span> <span class="n">FastCircles</span><span class="p">,</span>
+        <span class="s1">&#39;watershed&#39;</span><span class="p">:</span> <span class="n">WatershedCircles</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="n">identifier</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;You must specify a proposal extractor.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">identifier</span><span class="p">,</span> <span class="n">ExtractorBaseClass</span><span class="p">):</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">identifier</span>
+        <span class="k">return</span> <span class="n">model</span>
+    <span class="k">elif</span> <span class="n">identifier</span> <span class="ow">in</span> <span class="n">model_dictionary</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">model_dictionary</span><span class="p">[</span><span class="n">identifier</span><span class="p">]()</span>
+    <span class="k">elif</span> <span class="n">callable</span><span class="p">(</span><span class="n">identifier</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">identifier</span><span class="p">(),</span> <span class="n">DetectorBaseClass</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">identifier</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;custom extractors must inherit&#39;</span>
+                           <span class="s1">&#39;from ExtractorBaseClass, which can be&#39;</span>
+                           <span class="s1">&#39;imported from extractors.py&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Could not interpret &#39;</span>
+                         <span class="s1">&#39;extractor identifier: </span><span class="si">{}</span><span class="s1"> </span><span class="se">\n</span><span class="s1">&#39;</span>
+                         <span class="s1">&#39;try one of these keywords: </span><span class="si">{}</span><span class="s1">&#39;</span></div>
+                         <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">identifier</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">model_dictionary</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+        
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PyCDA 0.1.13 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../pycda.html" >pycda</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Michael Klear.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.1.
+    </div>
+  </body>
+</html>

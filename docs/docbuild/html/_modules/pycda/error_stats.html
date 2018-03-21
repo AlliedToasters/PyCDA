@@ -1,0 +1,347 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>pycda.error_stats &#8212; PyCDA 0.1.13 documentation</title>
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PyCDA 0.1.13 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../pycda.html" accesskey="U">pycda</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pycda.error_stats</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">matplotlib.patches</span> <span class="k">as</span> <span class="nn">mpatches</span>
+<span class="kn">from</span> <span class="nn">sklearn.neighbors</span> <span class="k">import</span> <span class="n">NearestNeighbors</span>
+<span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="k">import</span> <span class="n">completeness_score</span>
+
+<div class="viewcode-block" id="ErrorAnalyzer"><a class="viewcode-back" href="../../pycda.html#pycda.error_stats.ErrorAnalyzer">[docs]</a><span class="k">class</span> <span class="nc">ErrorAnalyzer</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Error Analyzer is used to measure predictive performance</span>
+<span class="sd">    of cda. It is intended for use on images where all craters</span>
+<span class="sd">    have been hand labeled and so are &quot;known&quot;. The PyCDA prediction</span>
+<span class="sd">    object accepts known craters as a pandas dataframe under the</span>
+<span class="sd">    attribute prediction.known_craters; the columns &#39;lat&#39;, &#39;long&#39;, </span>
+<span class="sd">    and &#39;diameter&#39; should be populated with approprate values for </span>
+<span class="sd">    known crater objects for use with ErrorAnalyzer.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;An analyzer tracks predicted and known craters after</span>
+<span class="sd">        performing analysis. Will reset after new call to .analyze</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">predicted</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">known</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fp</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tp</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fn</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">D</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">B</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Q</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prediction_object</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">_match_predictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prop</span><span class="p">,</span> <span class="n">known</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Uses nearest neighbors algorithm to match</span>
+<span class="sd">        known craters to proposals.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">threshold</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prediction_object</span><span class="o">.</span><span class="n">threshold</span>
+        <span class="c1">#Will search through ten nearest proposals</span>
+        <span class="c1">#unless there are fewer than ten.</span>
+        <span class="n">kn</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">prop</span><span class="p">))</span>
+        <span class="n">nnb_search</span> <span class="o">=</span> <span class="n">NearestNeighbors</span><span class="p">(</span>  
+            <span class="n">n_neighbors</span><span class="o">=</span><span class="n">kn</span><span class="p">,</span> 
+            <span class="n">algorithm</span><span class="o">=</span><span class="s1">&#39;ball_tree&#39;</span><span class="p">,</span> 
+            <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;l2&#39;</span>
+        <span class="p">)</span>
+        <span class="c1">#fit to proposals to search this list</span>
+        <span class="n">nnb_search</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">prop</span><span class="p">[[</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="s1">&#39;long&#39;</span><span class="p">,</span> <span class="s1">&#39;diameter&#39;</span><span class="p">]])</span>
+        <span class="n">distances</span><span class="p">,</span> <span class="n">indices</span> <span class="o">=</span> <span class="n">nnb_search</span><span class="o">.</span><span class="n">kneighbors</span><span class="p">(</span><span class="n">known</span><span class="p">[[</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="s1">&#39;long&#39;</span><span class="p">,</span> <span class="s1">&#39;diameter&#39;</span><span class="p">]])</span>
+
+        <span class="c1">#will keep results organized</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">known</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">cols1</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;neighbor</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">kn</span><span class="p">)]</span>
+        <span class="n">distances</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span> <span class="o">=</span> <span class="n">cols1</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">distances</span><span class="p">)</span>
+        <span class="n">cols2</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;id</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">kn</span><span class="p">)]</span>
+        <span class="n">ids</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span> <span class="o">=</span> <span class="n">cols2</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">indices</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">results</span><span class="p">,</span> <span class="n">distances</span><span class="p">,</span> <span class="n">ids</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1">#Scale distances by known crater diameter</span>
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">cols1</span><span class="p">:</span>
+            <span class="n">results</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">/</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;diameter&#39;</span><span class="p">]</span>
+
+        <span class="c1">#These copies will be our outputs</span>
+        <span class="n">known_copy</span> <span class="o">=</span> <span class="n">known</span><span class="p">[[</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="s1">&#39;long&#39;</span><span class="p">,</span> <span class="s1">&#39;diameter&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">prop_copy</span> <span class="o">=</span> <span class="n">prop</span><span class="p">[[</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="s1">&#39;long&#39;</span><span class="p">,</span> <span class="s1">&#39;diameter&#39;</span><span class="p">,</span> <span class="s1">&#39;likelihood&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="c1">#initialize truth values</span>
+        <span class="n">known_copy</span><span class="p">[</span><span class="s1">&#39;detected&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">prop_copy</span><span class="p">[</span><span class="s1">&#39;positive&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1">#iterate over neighbors, starting with nearest</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">kn</span><span class="p">):</span>
+            <span class="n">results_col</span> <span class="o">=</span> <span class="s1">&#39;neighbor</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+            <span class="n">prop_col</span> <span class="o">=</span> <span class="s1">&#39;id</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+            <span class="c1">#order by vicinity and iterate in ascending order</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">results</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">results_col</span><span class="p">)</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+                <span class="n">prop_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">prop_col</span><span class="p">])</span>
+                <span class="c1">#stop iteration once we hit threshold</span>
+                <span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="n">results_col</span><span class="p">]</span> <span class="o">&gt;</span> <span class="o">.</span><span class="mi">4</span><span class="p">:</span>
+                    <span class="k">break</span>
+                <span class="c1">#if crater/proposal haven&#39;t been matched, match them</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">known_copy</span><span class="o">.</span><span class="n">at</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="s1">&#39;detected&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">prop_copy</span><span class="o">.</span><span class="n">at</span><span class="p">[</span><span class="n">prop_id</span><span class="p">,</span> <span class="s1">&#39;positive&#39;</span><span class="p">]:</span>
+                    <span class="c1">#iff proposal was accepted by classifier</span>
+                    <span class="k">if</span> <span class="n">prop_copy</span><span class="o">.</span><span class="n">at</span><span class="p">[</span><span class="n">prop_id</span><span class="p">,</span> <span class="s1">&#39;likelihood&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">threshold</span><span class="p">:</span>
+                        <span class="n">known_copy</span><span class="o">.</span><span class="n">at</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="s1">&#39;detected&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+                        <span class="n">prop_copy</span><span class="o">.</span><span class="n">at</span><span class="p">[</span><span class="n">prop_id</span><span class="p">,</span> <span class="s1">&#39;positive&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> craters were properly detected.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">known_copy</span><span class="p">[</span><span class="n">known_copy</span><span class="p">[</span><span class="s1">&#39;detected&#39;</span><span class="p">]])))</span>
+        <span class="k">return</span> <span class="n">prop_copy</span><span class="p">,</span> <span class="n">known_copy</span>
+
+    <span class="k">def</span> <span class="nf">_compute_results</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Computes descriptive statistics about model performance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">done</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;No results to compute!&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tp</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predicted</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">predicted</span><span class="o">.</span><span class="n">positive</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predicted</span><span class="p">[</span><span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">predicted</span><span class="o">.</span><span class="n">positive</span><span class="p">]</span><span class="o">.</span><span class="n">likelihood</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">prediction_object</span><span class="o">.</span><span class="n">threshold</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fn</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">known</span><span class="p">[</span><span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">known</span><span class="o">.</span><span class="n">detected</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">D</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tp</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">fn</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">R</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tp</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">fn</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">P</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tp</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">F1</span> <span class="o">=</span> <span class="mi">2</span><span class="o">/</span><span class="p">((</span><span class="mi">1</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">P</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">FD</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">P</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">FNR</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fn</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tp</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">fn</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">B</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">tp</span>
+        <span class="k">except</span> <span class="ne">ZeroDivisionError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">B</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="o">/.</span><span class="mi">00001</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Q</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tp</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">fp</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">fn</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+        
+<div class="viewcode-block" id="ErrorAnalyzer.print_report"><a class="viewcode-back" href="../../pycda.html#pycda.error_stats.ErrorAnalyzer.print_report">[docs]</a>    <span class="k">def</span> <span class="nf">print_report</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Prints performance statistics for prediction.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">done</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Call .analyze() on a prediction to get stats.&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="o">*</span><span class="mi">50</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">Detection Percentage: </span><span class="si">{}</span><span class="s1">%&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">Precision: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">P</span><span class="p">,</span> <span class="mi">2</span><span class="p">)))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">Recall: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">,</span> <span class="mi">2</span><span class="p">)))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">F1-Score: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">F1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">False Discovery Rate: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">FD</span><span class="p">,</span> <span class="mi">2</span><span class="p">)))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">False Negative Rate: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">FNR</span><span class="p">,</span> <span class="mi">2</span><span class="p">)))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">Branching Factor: &#39;</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">B</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">Quality Percentage: </span><span class="si">{}</span><span class="s1">%&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="o">*</span><span class="mi">50</span><span class="p">)</span></div>
+        <span class="k">return</span>
+    
+
+<div class="viewcode-block" id="ErrorAnalyzer.analyze"><a class="viewcode-back" href="../../pycda.html#pycda.error_stats.ErrorAnalyzer.analyze">[docs]</a>    <span class="k">def</span> <span class="nf">analyze</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prediction</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Takes a prediction object and performs analysis on it.</span>
+<span class="sd">        Raises an exception if no known crater labels are attributed</span>
+<span class="sd">        to the input prediction object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">prediction</span><span class="o">.</span><span class="n">known_craters</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Known crater statistics are required to perform &#39;</span>
+                            <span class="s1">&#39;error analysis. Please populate the prediction object &#39;</span>
+                            <span class="s1">&#39;.known_craters attribute with known crater locations &#39;</span>
+                            <span class="s2">&quot;(pandas dataframe with columns &#39;lat&#39;, long&#39;, &#39;diameter&#39;)&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prediction</span><span class="o">.</span><span class="n">known_craters</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">())):</span>
+            <span class="c1">#If data is passed in as an array, create</span>
+            <span class="c1">#pandas dataframe for compatability. Assumes</span>
+            <span class="c1">#data is ordered as in df; x(0), y(1), diameter(2)</span>
+            <span class="n">known_craters</span> <span class="o">=</span> <span class="n">prediction</span><span class="o">.</span><span class="n">known_craters</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="s1">&#39;long&#39;</span><span class="p">,</span> <span class="s1">&#39;diameter&#39;</span><span class="p">])</span>
+            <span class="n">df</span><span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">known_craters</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="n">df</span><span class="p">[</span><span class="s1">&#39;long&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">known_craters</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">df</span><span class="p">[</span><span class="s1">&#39;diameter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">known_craters</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span>
+            <span class="n">craters</span> <span class="o">=</span> <span class="n">df</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prediction</span><span class="o">.</span><span class="n">known_craters</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">())):</span>
+            <span class="n">craters</span> <span class="o">=</span> <span class="n">prediction</span><span class="o">.</span><span class="n">known_craters</span>
+            <span class="n">cols</span> <span class="o">=</span> <span class="n">craters</span><span class="o">.</span><span class="n">columns</span>
+            <span class="c1">#attempts to format unlabeled/poorly labeled dataframe</span>
+            <span class="k">if</span> <span class="s1">&#39;lat&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cols</span> <span class="ow">or</span> <span class="s1">&#39;long&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cols</span> <span class="ow">or</span> <span class="s1">&#39;diameter&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Warning: crater annotations not properly labeled. &#39;</span>
+                          <span class="s1">&#39;If there is a problem, please reorder crater annotations &#39;</span>
+                          <span class="s1">&#39;as: x position, y position, crater diameter (pixels) &#39;</span>
+                          <span class="s1">&#39;and label columns in pandas dataframe.&#39;</span><span class="p">)</span>
+                <span class="n">craters</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="s1">&#39;long&#39;</span><span class="p">,</span> <span class="s1">&#39;diameter&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Sorry, labeled craters datatype is not understood. &#39;</span>
+                            <span class="s1">&#39;Please populate the prediction object &#39;</span>
+                            <span class="s1">&#39;.known_craters attribute with known crater locations &#39;</span>
+                            <span class="s2">&quot;(pandas dataframe with columns &#39;lat&#39;, &#39;long&#39;, &#39;diameter&#39;)&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prediction_object</span> <span class="o">=</span> <span class="n">prediction</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">predicted</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">known</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_match_predictions</span><span class="p">(</span>
+                                        <span class="n">prediction</span><span class="o">.</span><span class="n">proposals</span><span class="p">,</span>
+                                        <span class="n">craters</span><span class="p">,</span>
+                                        <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Matching complete!</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">done</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_compute_results</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">print_report</span><span class="p">()</span></div>
+        <span class="k">return</span>
+
+<div class="viewcode-block" id="ErrorAnalyzer.plot_densities"><a class="viewcode-back" href="../../pycda.html#pycda.error_stats.ErrorAnalyzer.plot_densities">[docs]</a>    <span class="k">def</span> <span class="nf">plot_densities</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Generates histogram plot with predicted and actual</span>
+<span class="sd">        crater densities by size.&quot;&quot;&quot;</span>
+        <span class="n">predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">predicted</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">predicted</span><span class="o">.</span><span class="n">likelihood</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">prediction_object</span><span class="o">.</span><span class="n">threshold</span><span class="p">]</span>
+        <span class="n">min_</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">known</span><span class="o">.</span><span class="n">diameter</span><span class="p">),</span> <span class="nb">min</span><span class="p">(</span><span class="n">predictions</span><span class="o">.</span><span class="n">diameter</span><span class="p">))</span>
+        <span class="n">max_</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">known</span><span class="o">.</span><span class="n">diameter</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">predictions</span><span class="o">.</span><span class="n">diameter</span><span class="p">))</span>
+        <span class="n">bins</span> <span class="o">=</span> <span class="p">[</span><span class="n">n</span><span class="o">*</span><span class="p">(</span><span class="n">max_</span><span class="o">-</span><span class="n">min_</span><span class="p">)</span><span class="o">/</span><span class="mi">20</span> <span class="o">+</span> <span class="n">min_</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">20</span><span class="p">)]</span>
+        <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">();</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">known</span><span class="o">.</span><span class="n">diameter</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="n">bins</span><span class="o">=</span><span class="n">bins</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;known crater density&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=.</span><span class="mi">5</span><span class="p">);</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">predictions</span><span class="o">.</span><span class="n">diameter</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="n">bins</span><span class="o">=</span><span class="n">bins</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;detected crater density&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=.</span><span class="mi">5</span><span class="p">);</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;crater diameter (pixels)&#39;</span><span class="p">);</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;density over image area&#39;</span><span class="p">);</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">();</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">();</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;known crater count in image: &#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">known</span><span class="p">))</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;detected crater count in image: &#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">predictions</span><span class="p">))</span></div>
+        <span class="k">return</span>
+        
+<div class="viewcode-block" id="ErrorAnalyzer.show"><a class="viewcode-back" href="../../pycda.html#pycda.error_stats.ErrorAnalyzer.show">[docs]</a>    <span class="k">def</span> <span class="nf">show</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Displays the input image with predictions and</span>
+<span class="sd">        known craters displayed by colors.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prediction_object</span><span class="o">.</span><span class="n">input_image</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prediction_object</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="n">threshold</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prediction_object</span><span class="o">.</span><span class="n">threshold</span>
+        <span class="n">predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">predicted</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">predicted</span><span class="o">.</span><span class="n">likelihood</span> <span class="o">&gt;</span> <span class="n">threshold</span><span class="p">]</span>
+        <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">7</span><span class="p">))</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;Greys_r&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Detection performance for </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">crater</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">known</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">crater</span><span class="o">.</span><span class="n">detected</span><span class="p">:</span>
+                <span class="n">y</span> <span class="o">=</span> <span class="n">crater</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">crater</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">r</span> <span class="o">=</span> <span class="n">crater</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">/</span><span class="mi">2</span>
+                <span class="n">circle</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">Circle</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="n">r</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">);</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">add_artist</span><span class="p">(</span><span class="n">circle</span><span class="p">);</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">proposal</span> <span class="ow">in</span> <span class="n">predictions</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">proposal</span><span class="o">.</span><span class="n">positive</span><span class="p">:</span>
+                <span class="n">y</span> <span class="o">=</span> <span class="n">proposal</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">proposal</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">r</span> <span class="o">=</span> <span class="n">proposal</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">/</span><span class="mi">2</span>
+                <span class="n">circle</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">Circle</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="n">r</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;yellow&#39;</span><span class="p">);</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">add_artist</span><span class="p">(</span><span class="n">circle</span><span class="p">);</span>
+            <span class="k">elif</span> <span class="n">proposal</span><span class="o">.</span><span class="n">positive</span><span class="p">:</span>
+                <span class="n">y</span> <span class="o">=</span> <span class="n">proposal</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">proposal</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">r</span> <span class="o">=</span> <span class="n">proposal</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">/</span><span class="mi">2</span>
+                <span class="n">circle</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">Circle</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="n">r</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;green&#39;</span><span class="p">);</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">add_artist</span><span class="p">(</span><span class="n">circle</span><span class="p">);</span>
+        <span class="n">handles</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">handles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mpatches</span><span class="o">.</span><span class="n">Patch</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s1">&#39;green&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;properly detected craters&#39;</span><span class="p">))</span>
+        <span class="n">handles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mpatches</span><span class="o">.</span><span class="n">Patch</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;undetected craters&#39;</span><span class="p">))</span>
+        <span class="n">handles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mpatches</span><span class="o">.</span><span class="n">Patch</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s1">&#39;yellow&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;false detections (noncraters detected as craters)&#39;</span><span class="p">))</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">handles</span><span class="o">=</span><span class="n">handles</span><span class="p">);</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">();</span></div>
+        <span class="k">return</span>
+
+<div class="viewcode-block" id="ErrorAnalyzer.return_results"><a class="viewcode-back" href="../../pycda.html#pycda.error_stats.ErrorAnalyzer.return_results">[docs]</a>    <span class="k">def</span> <span class="nf">return_results</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a tuple: one df predictions with additional column (positive)</span>
+<span class="sd">        with boolean values; another df with craters and an additional column</span>
+<span class="sd">        (detected) with boolean values.</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">predicted</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">known</span>
+    
+<div class="viewcode-block" id="ErrorAnalyzer.return_stats"><a class="viewcode-back" href="../../pycda.html#pycda.error_stats.ErrorAnalyzer.return_stats">[docs]</a>    <span class="k">def</span> <span class="nf">return_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns scoring stats: true positive count, false positive count,</span>
+<span class="sd">        false negative count, f1-score, and some other binary error statistics.&quot;&quot;&quot;</span>
+        <span class="n">stats_dict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;true_positives&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp</span><span class="p">,</span>
+            <span class="s1">&#39;false_positives&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="p">,</span>
+            <span class="s1">&#39;false_negatives&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">fn</span><span class="p">,</span>
+            <span class="s1">&#39;detection_percentage&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">,</span>
+            <span class="s1">&#39;precision&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">P</span><span class="p">,</span>
+            <span class="s1">&#39;recall&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">,</span>
+            <span class="s1">&#39;f1_score&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">F1</span><span class="p">,</span>
+            <span class="s1">&#39;false_detections&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">DF</span><span class="p">,</span>
+            <span class="s1">&#39;false_negative_rate&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">FNR</span>
+        <span class="p">}</span></div></div>
+        <span class="k">return</span> <span class="n">stats_dict</span>
+        
+            
+        
+
+        
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PyCDA 0.1.13 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../pycda.html" >pycda</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Michael Klear.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.1.
+    </div>
+  </body>
+</html>

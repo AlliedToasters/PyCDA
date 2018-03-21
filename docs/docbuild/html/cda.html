@@ -1,0 +1,191 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Crater Detection Pipeline &#8212; PyCDA 0.1.13 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="PyCDA Submodules" href="pycda.html" />
+    <link rel="prev" title="Getting Started" href="start.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="pycda.html" title="PyCDA Submodules"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="start.html" title="Getting Started"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PyCDA 0.1.13 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="crater-detection-pipeline">
+<h1>Crater Detection Pipeline<a class="headerlink" href="#crater-detection-pipeline" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-pycda">
+<span id="pipeline-and-image-objects"></span><h2>Pipeline and Image Objects<a class="headerlink" href="#module-pycda" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="pycda.CDA">
+<em class="property">class </em><code class="descclassname">pycda.</code><code class="descname">CDA</code><span class="sig-paren">(</span><em>detector='tiny'</em>, <em>extractor='fast_circle'</em>, <em>classifier='convolution'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda.html#CDA"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.CDA" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>CDA is the crater detection model pipeline. Its three
+main components are the detector, the extractor, and
+the classifier; with no keywords, will initialize with
+some basic models with general applicability and fast
+performance.</p>
+<dl class="docutils">
+<dt>Attributes:</dt>
+<dd><dl class="first last docutils">
+<dt>detector (str, detector object): The detector model used by</dt>
+<dd>pipeline. Accepted text arguments are:
+‘tiny’ : default, fast, performant detector
+‘unet’ : similar model to tiny, more robust, slower
+‘dummy’: does not make detections, used for testing.</dd>
+<dt>extractor (str, extractor object): The extractor model used by</dt>
+<dd>pipeline. Accepted text arguments are:
+‘fast_circle’ : default, converts detections into circles
+‘watershed’ : uses watershed segmentation to generate proposals
+‘dummy’ : does not make extractions, used for testing</dd>
+<dt>classifier (str, classifier object): The classifier model used</dt>
+<dd>by pipeline. Accepted string arguments are:
+‘convolution’ : default, uses a convolutional neural net model
+‘none’ : use no classifier (None type also accepted)
+‘dummy’ : assigns random likelihoods, used for testing.</dd>
+</dl>
+</dd>
+</dl>
+<dl class="method">
+<dt id="pycda.CDA.get_prediction">
+<code class="descname">get_prediction</code><span class="sig-paren">(</span><em>input_image</em>, <em>verbose=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda.html#CDA.get_prediction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.CDA.get_prediction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs a detection on input_image. Returns a 
+prediction object.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycda.CDA.predict">
+<code class="descname">predict</code><span class="sig-paren">(</span><em>input_image</em>, <em>threshold=0.5</em>, <em>verbose=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda.html#CDA.predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.CDA.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs a detection on input_image. Returns a pandas
+dataframe with detections.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pycda.CDAImage">
+<em class="property">class </em><code class="descclassname">pycda.</code><code class="descname">CDAImage</code><span class="sig-paren">(</span><em>image</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda.html#CDAImage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.CDAImage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>CDA image object; image stored as array; .show()
+method allows for easy viewing.</p>
+<dl class="method">
+<dt id="pycda.CDAImage.as_array">
+<code class="descname">as_array</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda.html#CDAImage.as_array"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.CDAImage.as_array" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the image as a numpy array.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycda.CDAImage.show">
+<code class="descname">show</code><span class="sig-paren">(</span><em>show_ticks=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda.html#CDAImage.show"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.CDAImage.show" title="Permalink to this definition">¶</a></dt>
+<dd><p>Displays the input image by plotting raster</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="pycda.load_image">
+<code class="descclassname">pycda.</code><code class="descname">load_image</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda.html#load_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.load_image" title="Permalink to this definition">¶</a></dt>
+<dd><p>load an image from the input filename path.
+returns a CDAImage object.</p>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Crater Detection Pipeline</a><ul>
+<li><a class="reference internal" href="#module-pycda">Pipeline and Image Objects</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="start.html"
+                        title="previous chapter">Getting Started</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="pycda.html"
+                        title="next chapter">PyCDA Submodules</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/cda.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="pycda.html" title="PyCDA Submodules"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="start.html" title="Getting Started"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PyCDA 0.1.13 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Michael Klear.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.1.
+    </div>
+  </body>
+</html>
