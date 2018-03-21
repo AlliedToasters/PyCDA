@@ -2,9 +2,9 @@ import unittest
 import pycda
 from pycda import error_stats as es
 from pycda import predictions as pr
-from pycda.detectors import DummyDetector
-from pycda.extractors import DummyExtractor
-from pycda.classifiers import DummyClassifier, ConvolutionalClassifier
+from pycda.detectors import _DummyDetector
+from pycda.extractors import _DummyExtractor
+from pycda.classifiers import _DummyClassifier, ConvolutionalClassifier
 from pycda.sample_data import get_sample_image, get_sample_csv
 from pycda.util_functions import get_steps, crop_array, make_batch
 import numpy as np
@@ -66,9 +66,9 @@ class TestImageFlow(unittest.TestCase):
     def setUp(self):
         print('\n')
         self.cda = pycda.CDA(
-            detector=DummyDetector(), 
-            extractor=DummyExtractor(), 
-            classifier=DummyClassifier()
+            detector=_DummyDetector(), 
+            extractor=_DummyExtractor(), 
+            classifier=_DummyClassifier()
         )
         img_height = np.random.randint(200, 1000)
         img_width = np.random.randint(200, 1000)
@@ -127,7 +127,7 @@ class TestDetector(unittest.TestCase):
         in1 = np.random.randint(150, 250)
         out0 = np.random.randint(50, 150)
         out1 = np.random.randint(50, 150)
-        self.detector = DummyDetector(input_dims=(in0, in1), output_dims=(out0, out1))
+        self.detector = _DummyDetector(input_dims=(in0, in1), output_dims=(out0, out1))
     
     def test_dummy_detector(self):
         test_img = np.random.rand(self.detector.input_dims[0], self.detector.input_dims[1])
@@ -143,9 +143,9 @@ class TestPrediction(unittest.TestCase):
     
     def setUp(self):
         self.cda = pycda.CDA(
-            detector=DummyDetector(), 
-            extractor=DummyExtractor(), 
-            classifier=DummyClassifier()
+            detector=_DummyDetector(), 
+            extractor=_DummyExtractor(), 
+            classifier=_DummyClassifier()
         )
         img_height = np.random.randint(500, 1500)
         img_width = np.random.randint(500, 1500)
