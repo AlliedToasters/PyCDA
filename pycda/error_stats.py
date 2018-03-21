@@ -10,9 +10,9 @@ class ErrorAnalyzer(object):
     of cda. It is intended for use on images where all craters
     have been hand labeled and so are "known". The PyCDA prediction
     object accepts known craters as a pandas dataframe under the
-    attribute .known_craters; the columns 'x', 'y', and 'diameter'
-    should be populated with approprate values for known crater
-    objects for use with ErrorAnalyzer.
+    attribute prediction.known_craters; the columns 'lat', 'long', 
+    and 'diameter' should be populated with approprate values for 
+    known crater objects for use with ErrorAnalyzer.
     """
     def __init__(self):
         """An analyzer tracks predicted and known craters after
@@ -88,7 +88,7 @@ class ErrorAnalyzer(object):
             print('{} craters were properly detected.'.format(len(known_copy[known_copy['detected']])))
         return prop_copy, known_copy
 
-    def compute_results(self):
+    def _compute_results(self):
         """Computes descriptive statistics about model performance.
         """
         if not self.done:
@@ -116,14 +116,14 @@ class ErrorAnalyzer(object):
             print('Call .analyze() on a prediction to get stats.')
             return None
         print('='*50)
-        print('\nDetection Percentage: %{}'.format(round(self.D, 1)))
+        print('\nDetection Percentage: {}%'.format(round(self.D, 1)))
         print('\nPrecision: {}'.format(round(self.P, 2)))
         print('\nRecall: {}'.format(round(self.R, 2)))
         print('\nF1-Score: {}'.format(round(self.F1, 2)))
         print('\nFalse Discovery Rate: {}'.format(round(self.FD, 2)))
         print('\nFalse Negative Rate: {}'.format(round(self.FNR, 2)))
         print('\nBranching Factor: ', round(self.B, 2))
-        print('\nQuality Percentage: %{}'.format(round(self.Q, 1)), '\n')
+        print('\nQuality Percentage: {}%'.format(round(self.Q, 1)), '\n')
         print('='*50)
         return
     
@@ -173,7 +173,7 @@ class ErrorAnalyzer(object):
         if verbose:
             print('Matching complete!\n')
         self.done = True
-        self.compute_results()
+        self._compute_results()
         if verbose:
             self.print_report()
         return
@@ -237,11 +237,15 @@ class ErrorAnalyzer(object):
         return
 
     def return_results(self):
-        """Returns matched lists of known craters and detections."""
+        """Returns a tuple: one df predictions with additional column (positive)
+        with boolean values; another df with craters and an additional column
+        (detected) with boolean values.
+        """
         return self.predicted, self.known
     
     def return_stats(self):
-        """Returns matched lists of known craters and detections."""
+        """Returns scoring stats: true positive count, false positive count,
+        false negative count, f1-score, and some other binary error statistics."""
         stats_dict = {
             'true_positives': self.tp,
             'false_positives': self.fp,

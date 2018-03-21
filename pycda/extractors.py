@@ -17,35 +17,14 @@ class ExtractorBaseClass(object):
     
     def __call__(self):
         raise Exception('Extractor base class cannot perform extraction.')
-        
-class DummyExtractor(ExtractorBaseClass):
-    """Dummy Extractor takes an input image and returns a list of
-    random predictions for testing. Proposals are a list of tuples.
-    Each tuple in the list has the crater proposal as (in pixels):
-    (x position, y position, diameter).
-    """
-    def __call__(self, image, verbose=False):
-        width = image.shape[0]
-        height = image.shape[1]
-        n_proposals = np.random.randint(2,50)
-        proposals = []
-        for prop in range(n_proposals):
-            x_pos = np.random.randint(0, width)
-            y_pos = np.random.randint(0, height)
-            diameter = np.random.randint(2, width+height/20)
-            likelihood = 1
-            proposals.append((x_pos, y_pos, diameter, 1))
-        proposals = pd.DataFrame(columns=['x', 'y', 'diameter', 'likelihood'], data=proposals)
-        if verbose:
-            print('I am a dummy extractor!')
-        return proposals
     
     
 class FastCircles(ExtractorBaseClass):
     """Circle Extractor assumes all objects in detection map are
     circles. It identifies groups of pixels, computes
     their mean location (centroid), and diameter based on
-    the number of pixels in the group.
+    the number of pixels in the group. Takes a prediction object
+    and returns a list of proposals.
     """
     def __init__(self, sensitivity=.5):
         """sensitivity is a hyperparameter that adjusts the extractor's
@@ -55,7 +34,7 @@ class FastCircles(ExtractorBaseClass):
         """
         self.threshold = 1 - sensitivity
     
-    def get_label_map(self, detection_map, threshold=.5, verbose=False):
+    def _get_label_map(self, detection_map, threshold=.5, verbose=False):
         """Takes a pixel-wise prediction map and returns a matrix
         of unique objects on the map. Threshold is a hyperparameter
         for crater/non-crater pixel determination. Higher threshold
@@ -69,14 +48,14 @@ class FastCircles(ExtractorBaseClass):
             print('done!')
         return labels
 
-    def get_crater_pixels(self, label_matrix, idx):
+    def _get_crater_pixels(self, label_matrix, idx):
         """Takes a label matrix and a number and gets all the
         pixel locations from that crater object.
         """
         result = np.argwhere(np.where(label_matrix==idx, 1, 0))
         return result
 
-    def get_pixel_objects(self, label_matrix, verbose=False):
+    def _get_pixel_objects(self, label_matrix, verbose=False):
         """Takes the label matrix and returns a list of objects.
         Each element in the list is a unique object, defined
         by an array of pixel locations belonging to it.
@@ -90,12 +69,12 @@ class FastCircles(ExtractorBaseClass):
             result.append(slice_)
         return result
 
-    def get_crater_proposals(self, detection_map, verbose=False):
+    def _get_crater_proposals(self, detection_map, verbose=False):
         """Takes a pixel-wise prediction map and returns a list of
         crater proposals as lat, long, diameter.
         """
-        label_matrix = self.get_label_map(detection_map, verbose=verbose)
-        proposals = self.get_pixel_objects(label_matrix, verbose=verbose)
+        label_matrix = self._get_label_map(detection_map, verbose=verbose)
+        proposals = self._get_pixel_objects(label_matrix, verbose=verbose)
         result = []
         if verbose:
             print('Defining proposals as circles...')
@@ -115,13 +94,15 @@ class FastCircles(ExtractorBaseClass):
     
     def __call__(self, detection_map, verbose=False):
         cols = ['lat', 'long', 'diameter']
-        result = self.get_crater_proposals(detection_map, verbose=verbose)
+        result = self._get_crater_proposals(detection_map, verbose=verbose)
         proposals = pd.DataFrame(columns = cols, data=result)
         proposals['likelihood'] = 1
         return proposals
     
 class WatershedCircles(ExtractorBaseClass):
-    """Performs a 'watershed' analysis:
+    """Takes a prediction object after detection and returns a 
+    list of crater proposals (by calling object on prediction.)
+    Performs a 'watershed' analysis:
     -transforms image to binary for some threshold (default .5)
     -transforms pixel values to min distance to background (0) pixel
     -uses local maxima as points for 'water sources'
@@ -138,7 +119,7 @@ class WatershedCircles(ExtractorBaseClass):
         """
         self.threshold = 1 - sensitivity
     
-    def get_labels(self, detection_map, verbose=False):
+    def _get_labels(self, detection_map, verbose=False):
         """Handles transformations and extracts labels
         for each object identified.
         """
@@ -155,10 +136,10 @@ class WatershedCircles(ExtractorBaseClass):
         
         return labels
 
-    def get_crater_proposals(self, detection_map, verbose=False):
+    def _get_crater_proposals(self, detection_map, verbose=False):
         """Converts labeled objects into circle figures.
         """
-        labels = self.get_labels(detection_map, verbose=verbose)
+        labels = self._get_labels(detection_map, verbose=verbose)
         objs = find_objects(labels)
         proposals = []
         for obj in objs:
@@ -175,17 +156,40 @@ class WatershedCircles(ExtractorBaseClass):
     
     def __call__(self, detection_map, verbose=False):
         cols = ['lat', 'long', 'diameter']
-        result = self.get_crater_proposals(detection_map, verbose=verbose)
+        result = self._get_crater_proposals(detection_map, verbose=verbose)
         proposals = pd.DataFrame(columns = cols, data=result)
         proposals['likelihood'] = 1
         return proposals
 
+class _DummyExtractor(ExtractorBaseClass):
+    """Dummy Extractor takes an input image and returns a list of
+    random predictions for testing. Proposals are a list of tuples.
+    Each tuple in the list has the crater proposal as (in pixels):
+    (x position, y position, diameter).
+    """
+    def __call__(self, image, verbose=False):
+        width = image.shape[0]
+        height = image.shape[1]
+        n_proposals = np.random.randint(2,50)
+        proposals = []
+        for prop in range(n_proposals):
+            x_pos = np.random.randint(0, width)
+            y_pos = np.random.randint(0, height)
+            diameter = np.random.randint(2, width+height/20)
+            likelihood = 1
+            proposals.append((x_pos, y_pos, diameter, 1))
+        proposals = pd.DataFrame(columns=['x', 'y', 'diameter', 'likelihood'], data=proposals)
+        if verbose:
+            print('I am a dummy extractor!')
+        return proposals    
+    
+    
 def get(identifier):
     """handles argument to CDA pipeline for extractor specification.
     returns an initialized extractor.
     """
     model_dictionary = {
-        'dummy': DummyExtractor,
+        'dummy': _DummyExtractor,
         'fast_circle': FastCircles,
         'watershed': WatershedCircles
     }

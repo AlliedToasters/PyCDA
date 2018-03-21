@@ -12,16 +12,35 @@ from pycda import util_functions
 from pycda.util_functions import update_progress, resolve_color_channels, get_steps, get_crop_specs, crop_array, remove_ticks, make_batch
 
 class CDA(object):
-    """the CDA class is a pipeline that makes predictions
-    on an input image by passing it through a series of
-    models. For each prediction, it generates a prediction
-    object that tracks the outputs of the various models throughout
-    the process.
+    """CDA is the crater detection model pipeline. Its three
+    main components are the detector, the extractor, and
+    the classifier; with no keywords, will initialize with
+    some basic models with general applicability and fast
+    performance.
+    
+    Attributes:
+        detector (str, detector object): The detector model used by
+            pipeline. Accepted text arguments are:
+            'tiny' : default, fast, performant detector
+            'unet' : similar model to tiny, more robust, slower
+            'dummy': does not make detections, used for testing.
+    
+        extractor (str, extractor object): The extractor model used by
+            pipeline. Accepted text arguments are:
+            'fast_circle' : default, converts detections into circles
+            'watershed' : uses watershed segmentation to generate proposals
+            'dummy' : does not make extractions, used for testing
+
+        classifier (str, classifier object): The classifier model used
+            by pipeline. Accepted string arguments are:
+            'convolution' : default, uses a convolutional neural net model
+            'none' : use no classifier (None type also accepted)
+            'dummy' : assigns random likelihoods, used for testing.
+    
     """
     def __init__(self, detector='tiny', extractor='fast_circle', classifier='convolution'):
-        """To initialize the CDA, you must define a detector, extractor, and
-        classifier. You can pass these in as arguments or use text aliases
-        to specify.
+        """detector, extractor, and classifier keywords can accept initialized
+        models or certain strings. See CDA class docstring
         """
         #initialize the models.
         self.detector = detectors.get(detector)
@@ -200,22 +219,21 @@ class CDA(object):
         return prediction
     
     def predict(self, input_image, threshold=.5, verbose=False):
-        """Intended for 'out of box' use. Calls predictions
-        and returns a pandas dataframe with crater predictions.
+        """Performs a detection on input_image. Returns a pandas
+        dataframe with detections.
         """
         prediction = self._predict(input_image, verbose=verbose)
         return prediction._predict(threshold=threshold)
     
     def get_prediction(self, input_image, verbose=False):
-        """Used for accessing the prediction object.
-        Calls predictions and returns the prediction
-        object for advanced statistics and visualizations.
+        """Performs a detection on input_image. Returns a 
+        prediction object.
         """
         return self._predict(input_image, verbose=verbose)
     
 class CDAImage(object):
-    """Special image object for CDA; Stored as an array,
-    but with .show() function for viewing.
+    """CDA image object; image stored as array; .show()
+    method allows for easy viewing.
     """
     def __init__(self, image):
         #Common use case: convert from array to PIL image
@@ -232,7 +250,7 @@ class CDAImage(object):
                             ' understand input image type.')
      
     def show(self, show_ticks=False):
-        """Displays the input image using PIL image object"""
+        """Displays the input image by plotting raster"""
         fig, ax = plt.subplots();
         ax.imshow(self.image, cmap='Greys_r');
         if not show_ticks:
@@ -241,12 +259,13 @@ class CDAImage(object):
         return None
     
     def as_array(self):
-        """If array version of image is needed."""
+        """Returns the image as a numpy array."""
         return self.image
     
 def load_image(filename):
-    """load an image from input filepath and return
-    a numpy array image."""
+    """load an image from the input filename path.
+    returns a CDAImage object.
+    """
     image = io.imread(filename)
     try:
         assert isinstance(image, type(np.array([0])))

@@ -72,19 +72,23 @@ class Prediction(object):
         return df
     
     def get_proposals(self):
+        """Returns a dataframe with crater proposals and
+        likelihoods from classifier.
+        """
         return self.proposals
     
     def set_scale(self, scale):
         """User can set scale for statistics in meters.
-        scale should be meters per pixel.
+        scale should be meters per pixel; pass scale as float or int
+        as argument, saves scale to prediction object.
         """
         self.scale = scale
+        return
         
     
-    def show(self, threshold=.5, include_ticks=True):
+    def show(self, threshold=.5, include_ticks=True, save_plot=False):
         """Displays the input image with the predicted craters
-        overlaid. Threshold determines the likelihood for which a proposal
-        should be displayed.
+        overlaid.
         """
         fig, ax = plt.subplots(figsize=(7, 7))
         ax.imshow(self.input_image, cmap='Greys_r')
@@ -105,6 +109,16 @@ class Prediction(object):
                 r = crater[2]/2
                 circle = plt.Circle((x, y), r, fill=False, color='r');
                 ax.add_artist(circle);
+        if save_plot != False:
+            try:
+                plt.title('off')
+                plt.axis('off')
+                fig.savefig(save_plot, bbox_inches='tight')
+            except:
+                print('could not save. please pass filepath as'
+                      'keyword argument save_plot.')
+        ax.set_title('Crater detections for {}'.format(self.__name__))
+        plt.axis('on')
         plt.show();
         
     def show_detection(self, remove_ticks=True):

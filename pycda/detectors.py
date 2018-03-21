@@ -29,35 +29,6 @@ class DetectorBaseClass(object):
         """
         raise Exception('Error: the detector base class cannot make predictions.')
         
-class DummyDetector(DetectorBaseClass):
-    """The dummy detector is used for testing. It returns predictions
-    when called; the predictions contain random values between 0 and 1,
-    in the dimensions specified at initialization.
-    """
-    def __init__(self, input_dims=(256, 256), output_dims=(172, 172), n_channels=1, batch_size=5):
-        self.input_dims = input_dims
-        self.input_channels = n_channels
-        self.output_dims = output_dims
-        self.in_out_map = 'center'
-        self.rec_batch_size = batch_size
-        self.prediction_type = 'pixel-wise'
-        
-    def predict(self, batch):
-        """returns a batch of random-pixel images with appropriate shape."""
-        try:
-            assert (batch.shape[1], batch.shape[2]) == self.input_dims
-        except AssertionError:
-            raise Exception('input image shape must match detector.input_dims')
-        predictions = []
-        ypadding = (self.input_dims[0] - self.output_dims[0])//2
-        xpadding = (self.input_dims[1] - self.output_dims[1])//2
-        for img in batch:
-            image = img[:, :, 0]
-            prediction = crop_array(image, self.output_dims[0], self.output_dims[1], orgn=(ypadding,xpadding))
-            #prediction = np.random.rand(self.output_dims[0], self.output_dims[1])
-            prediction = np.expand_dims(prediction, axis=-1)
-            predictions.append(prediction)
-        return np.array(predictions)
     
 class UnetDetector(DetectorBaseClass):
     """U-net convolutional model to generate pixel-wise
@@ -76,7 +47,7 @@ class UnetDetector(DetectorBaseClass):
         #small batches due to high memory requirements.
         self.rec_batch_size = 3
         self.prediction_type = 'pixel-wise'
-        path = pkg_resources.resource_filename('pycda', 'models/unet_light_model.h5')
+        path = pkg_resources.resource_filename('pycda', 'models/unet.h5')
         self.model = load_model(path)
         
     def predict(self, batch):
@@ -114,6 +85,8 @@ class CustomDetector(DetectorBaseClass):
     channels-first is not currently supported.
     You should specify recommended batch size.
     (if not specified, set to 1.)
+    
+    Use model_path argument to specify the path to your keras model.
     """
     def __init__(self, model_path, rec_batch_size = 1, in_out_map = 'center'):
         import tensorflow as tf
@@ -136,13 +109,43 @@ class CustomDetector(DetectorBaseClass):
         """returns a batch of random-pixel images with appropriate shape."""
         return self.model.predict(batch)
     
+class _DummyDetector(DetectorBaseClass):
+    """The dummy detector is used for testing. It returns predictions
+    when called; the predictions contain random values between 0 and 1,
+    in the dimensions specified at initialization.
+    """
+    def __init__(self, input_dims=(256, 256), output_dims=(172, 172), n_channels=1, batch_size=5):
+        self.input_dims = input_dims
+        self.input_channels = n_channels
+        self.output_dims = output_dims
+        self.in_out_map = 'center'
+        self.rec_batch_size = batch_size
+        self.prediction_type = 'pixel-wise'
+        
+    def predict(self, batch):
+        """returns a batch of random-pixel images with appropriate shape."""
+        try:
+            assert (batch.shape[1], batch.shape[2]) == self.input_dims
+        except AssertionError:
+            raise Exception('input image shape must match detector.input_dims')
+        predictions = []
+        ypadding = (self.input_dims[0] - self.output_dims[0])//2
+        xpadding = (self.input_dims[1] - self.output_dims[1])//2
+        for img in batch:
+            image = img[:, :, 0]
+            prediction = crop_array(image, self.output_dims[0], self.output_dims[1], orgn=(ypadding,xpadding))
+            #prediction = np.random.rand(self.output_dims[0], self.output_dims[1])
+            prediction = np.expand_dims(prediction, axis=-1)
+            predictions.append(prediction)
+        return np.array(predictions)
+    
         
 def get(identifier):
     """handles argument to CDA pipeline for detector specification.
     returns an initialized detector.
     """
     model_dictionary = {
-        'dummy': DummyDetector,
+        'dummy': _DummyDetector,
         'unet': UnetDetector,
         'tiny': TinyDetector
     }

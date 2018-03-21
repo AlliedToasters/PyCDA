@@ -24,51 +24,10 @@ class ClassifierBaseClass(object):
         """
         raise Exception('Base classifier cannot make predictions.')
         
-class DummyClassifier(ClassifierBaseClass):
-    """Dummy classifier for testing."""
-    
-    def __init__(self, input_dims=(20, 20), n_channels=1, npx = 8):
-        self.input_dims = input_dims
-        self.crater_pixels = npx
-        self.input_channels = n_channels
-        self.rec_batch_size = 32
-        
-    def predict(self, batch):
-        """Returns an array of randomly-generated predictions of length
-        of batch."""
-        try:
-            assert (batch.shape[1], batch.shape[2]) == self.input_dims
-        except AssertionError:
-            raise Exception('input image shape must match classifier.input_dims')
-        batch_size = batch.shape[0]
-        predictions = []
-        for i in range(batch_size):
-            prediction = np.random.rand()
-            prediction = np.expand_dims(prediction, axis=-1)
-            predictions.append(prediction)
-        return np.array(predictions)
-    
-class NullClassifier(ClassifierBaseClass):
-    """For use when classifier is not wanted. Returns a likelihood of 1
-    for every proposal."""
-    
-    def __init__(self, input_dims = (1, 1), n_channels=1):
-        self.input_dims = input_dims
-        self.crater_pixels = 1
-        self.rec_batch_size = 1000
-        self.input_channels = n_channels
-        
-    def predict(self, batch):
-        """Returns an array of randomly-generated predictions of length
-        of batch."""
-        batch_size = batch.shape[0]
-        predictions = [[1] for x in range(batch_size)]
-        return np.array(predictions)
-        
 class ConvolutionalClassifier(ClassifierBaseClass):
     """12x12 pixel classifier using 2D convolution
-    implimented with Keras on tensorflow backend. Built
-    for nice performance and speed."""
+    implimented with Keras on tensorflow backend. Fast.
+    """
     
     def __init__(self):
         import tensorflow as tf
@@ -93,6 +52,7 @@ class CustomClassifier(ClassifierBaseClass):
     channels-first is not currently supported.
     You should specify recommended batch size.
     (if not specified, set to 24.)
+    Use model_path argument to specify path to keras model.
     """
     
     def __init__(self, model_path, crater_pixels, rec_batch_size = 24):
@@ -109,7 +69,48 @@ class CustomClassifier(ClassifierBaseClass):
         
     def predict(self, batch):
         """Performs prediction on batch."""
-        return self.model.predict(batch)   
+        return self.model.predict(batch) 
+    
+class NullClassifier(ClassifierBaseClass):
+    """For use when classifier is not wanted. Returns a likelihood of 1
+    for every proposal."""
+    
+    def __init__(self, input_dims = (1, 1), n_channels=1):
+        self.input_dims = input_dims
+        self.crater_pixels = 1
+        self.rec_batch_size = 1000
+        self.input_channels = n_channels
+        
+    def predict(self, batch):
+        """Returns an array of randomly-generated predictions of length
+        of batch."""
+        batch_size = batch.shape[0]
+        predictions = [[1] for x in range(batch_size)]
+        return np.array(predictions)
+    
+class _DummyClassifier(ClassifierBaseClass):
+    """Dummy classifier for testing."""
+    
+    def __init__(self, input_dims=(20, 20), n_channels=1, npx = 8):
+        self.input_dims = input_dims
+        self.crater_pixels = npx
+        self.input_channels = n_channels
+        self.rec_batch_size = 32
+        
+    def predict(self, batch):
+        """Returns an array of randomly-generated predictions of length
+        of batch."""
+        try:
+            assert (batch.shape[1], batch.shape[2]) == self.input_dims
+        except AssertionError:
+            raise Exception('input image shape must match classifier.input_dims')
+        batch_size = batch.shape[0]
+        predictions = []
+        for i in range(batch_size):
+            prediction = np.random.rand()
+            prediction = np.expand_dims(prediction, axis=-1)
+            predictions.append(prediction)
+        return np.array(predictions)
         
 def get(identifier):
     """handles argument to CDA pipeline for classifier specification.
@@ -117,7 +118,7 @@ def get(identifier):
     """
     model_dictionary = {
         'convolution': ConvolutionalClassifier,
-        'dummy': DummyClassifier,
+        'dummy': _DummyClassifier,
         'none': NullClassifier
     }
     if identifier is None:
