@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>pycda.detectors &#8212; PyCDA 0.1.13 documentation</title>
+    <title>pycda.detectors &#8212; PyCDA 0.1.14 documentation</title>
     <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <script type="text/javascript" src="../../_static/documentation_options.js"></script>
@@ -25,7 +25,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../../index.html">PyCDA 0.1.13 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PyCDA 0.1.14 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
           <li class="nav-item nav-item-2"><a href="../pycda.html" accesskey="U">pycda</a> &#187;</li> 
       </ul>
@@ -86,7 +86,7 @@
         <span class="c1">#small batches due to high memory requirements.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">rec_batch_size</span> <span class="o">=</span> <span class="mi">3</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">prediction_type</span> <span class="o">=</span> <span class="s1">&#39;pixel-wise&#39;</span>
-        <span class="n">path</span> <span class="o">=</span> <span class="n">pkg_resources</span><span class="o">.</span><span class="n">resource_filename</span><span class="p">(</span><span class="s1">&#39;pycda&#39;</span><span class="p">,</span> <span class="s1">&#39;models/unet_light_model.h5&#39;</span><span class="p">)</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">pkg_resources</span><span class="o">.</span><span class="n">resource_filename</span><span class="p">(</span><span class="s1">&#39;pycda&#39;</span><span class="p">,</span> <span class="s1">&#39;models/unet.h5&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">load_model</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
         
 <div class="viewcode-block" id="UnetDetector.predict"><a class="viewcode-back" href="../../pycda.html#pycda.detectors.UnetDetector.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
@@ -124,6 +124,8 @@
 <span class="sd">    channels-first is not currently supported.</span>
 <span class="sd">    You should specify recommended batch size.</span>
 <span class="sd">    (if not specified, set to 1.)</span>
+<span class="sd">    </span>
+<span class="sd">    Use model_path argument to specify the path to your keras model.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_path</span><span class="p">,</span> <span class="n">rec_batch_size</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">in_out_map</span> <span class="o">=</span> <span class="s1">&#39;center&#39;</span><span class="p">):</span>
         <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
@@ -240,7 +242,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../../index.html">PyCDA 0.1.13 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PyCDA 0.1.14 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
           <li class="nav-item nav-item-2"><a href="../pycda.html" >pycda</a> &#187;</li> 
       </ul>

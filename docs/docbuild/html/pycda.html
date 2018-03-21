@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>PyCDA Submodules &#8212; PyCDA 0.1.13 documentation</title>
+    <title>PyCDA Submodules &#8212; PyCDA 0.1.14 documentation</title>
     <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript" src="_static/documentation_options.js"></script>
@@ -29,7 +29,7 @@
         <li class="right" >
           <a href="cda.html" title="Crater Detection Pipeline"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">PyCDA 0.1.13 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">PyCDA 0.1.14 documentation</a> &#187;</li> 
       </ul>
     </div>  
 
@@ -52,6 +52,7 @@ and output dimensions. All models are channels-last;
 channels-first is not currently supported.
 You should specify recommended batch size.
 (if not specified, set to 1.)</p>
+<p>Use model_path argument to specify the path to your keras model.</p>
 <dl class="method">
 <dt id="pycda.detectors.CustomDetector.predict">
 <code class="descname">predict</code><span class="sig-paren">(</span><em>batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/detectors.html#CustomDetector.predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.detectors.CustomDetector.predict" title="Permalink to this definition">¶</a></dt>
@@ -119,16 +120,6 @@ returns an initialized detector.</p>
 </div>
 <div class="section" id="module-pycda.extractors">
 <span id="extractors"></span><h2>Extractors<a class="headerlink" href="#module-pycda.extractors" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="pycda.extractors.DummyExtractor">
-<em class="property">class </em><code class="descclassname">pycda.extractors.</code><code class="descname">DummyExtractor</code><a class="reference internal" href="_modules/pycda/extractors.html#DummyExtractor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.extractors.DummyExtractor" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#pycda.extractors.ExtractorBaseClass" title="pycda.extractors.ExtractorBaseClass"><code class="xref py py-class docutils literal notranslate"><span class="pre">pycda.extractors.ExtractorBaseClass</span></code></a></p>
-<p>Dummy Extractor takes an input image and returns a list of
-random predictions for testing. Proposals are a list of tuples.
-Each tuple in the list has the crater proposal as (in pixels):
-(x position, y position, diameter).</p>
-</dd></dl>
-
 <dl class="class">
 <dt id="pycda.extractors.ExtractorBaseClass">
 <em class="property">class </em><code class="descclassname">pycda.extractors.</code><code class="descname">ExtractorBaseClass</code><a class="reference internal" href="_modules/pycda/extractors.html#ExtractorBaseClass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.extractors.ExtractorBaseClass" title="Permalink to this definition">¶</a></dt>
@@ -218,25 +209,12 @@ the crater candidate diameter should occupy in the
 cropped image. All models are channels-last;
 channels-first is not currently supported.
 You should specify recommended batch size.
-(if not specified, set to 24.)</p>
+(if not specified, set to 24.)
+Use model_path argument to specify path to keras model.</p>
 <dl class="method">
 <dt id="pycda.classifiers.CustomClassifier.predict">
 <code class="descname">predict</code><span class="sig-paren">(</span><em>batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/classifiers.html#CustomClassifier.predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.classifiers.CustomClassifier.predict" title="Permalink to this definition">¶</a></dt>
 <dd><p>Performs prediction on batch.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="pycda.classifiers.DummyClassifier">
-<em class="property">class </em><code class="descclassname">pycda.classifiers.</code><code class="descname">DummyClassifier</code><span class="sig-paren">(</span><em>input_dims=(20</em>, <em>20)</em>, <em>n_channels=1</em>, <em>npx=8</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/classifiers.html#DummyClassifier"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.classifiers.DummyClassifier" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#pycda.classifiers.ClassifierBaseClass" title="pycda.classifiers.ClassifierBaseClass"><code class="xref py py-class docutils literal notranslate"><span class="pre">pycda.classifiers.ClassifierBaseClass</span></code></a></p>
-<p>Dummy classifier for testing.</p>
-<dl class="method">
-<dt id="pycda.classifiers.DummyClassifier.predict">
-<code class="descname">predict</code><span class="sig-paren">(</span><em>batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycda/classifiers.html#DummyClassifier.predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pycda.classifiers.DummyClassifier.predict" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns an array of randomly-generated predictions of length
-of batch.</p>
 </dd></dl>
 
 </dd></dl>
@@ -451,7 +429,7 @@ if choose=True, randomly selects sample photo from package.</p>
         <li class="right" >
           <a href="cda.html" title="Crater Detection Pipeline"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">PyCDA 0.1.13 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">PyCDA 0.1.14 documentation</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
