@@ -39,6 +39,8 @@ image = load_image('my_image_filepath.png')
 detections = cda.predict(image)
 ```
 
+The output of the call to .predict is a pandas dataframe, with columns 'lat' (crater location from top of image), 'long' (crater location from left edge of image), and diameter' (crater diameter in pixels).
+
 PyCDA currently handles image using PIL; image files from disc must therefore be in the formats that PIL supports. Numpy arrays of raster images are also supported; pass them in as you would an image object.
 
 PyCDA provides visualization and error analysis tools as well; check out the <a href='https://github.com/AlliedToasters/PyCDA/blob/master/demo.ipynb'>demo notebook</a> for a peek at these features!
