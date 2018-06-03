@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+gedfrom setuptools import setup, find_packages
 
 setup(name='pycda',
     version='0.1.1',
@@ -12,12 +12,12 @@ setup(name='pycda',
     packages=['pycda'],
     classifiers=[],
     install_requires=[
-        'numpy',
-        'pandas',
-        'scikit-image',
-        'scikit-learn',
-        'h5py',
-        'tensorflow',
-        'Keras'
+        'numpy==1.14.1',
+        'pandas==0.22.0',
+        'scikit-image==0.13.1',
+        'scikit-learn==0.19.1',
+        'h5py==2.7.1',
+        'tensorflow==1.6.0',
+        'Keras==2.1.5'
     ]
 )
