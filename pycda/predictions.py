@@ -39,10 +39,10 @@ class Prediction(object):
         self.known_craters = pd.DataFrame(columns=['lat', 'long', 'diameter'])
         #optional scale if user wants metric crater sizes
         self.scale = None
-        
+
     def __str__(self):
         return self.__name__
-        
+
     def _record_detection(self, detection, index):
         """Records a detection in the prediction map.
         Uses index to determine location of detection.
@@ -52,7 +52,7 @@ class Prediction(object):
         xmin = self.det_split_coords[index][1]
         xmax = min(xmin+detection.shape[1], self.detection_map.shape[1])
         self.detection_map[ymin:ymax, xmin:xmax] = detection
-        
+
     def _batch_record_detection(self, batch, indices):
         """Takes a batch of detections and a slice object
         that contains first, last index of batch. Records
@@ -62,7 +62,7 @@ class Prediction(object):
             detection = batch[i, :, :, 0]
             self._record_detection(detection, index)
         return
-        
+
     def _predict(self, threshold = .5):
         """Returns a dataframe of detected craters.
         Threshold determines a cutoff for proposal likelihood.
@@ -70,13 +70,13 @@ class Prediction(object):
         df = self.proposals[self.proposals.likelihood >= threshold]
         df = df[['lat', 'long', 'diameter']].copy()
         return df
-    
+
     def get_proposals(self):
         """Returns a dataframe with crater proposals and
         likelihoods from classifier.
         """
         return self.proposals
-    
+
     def set_scale(self, scale):
         """User can set scale for statistics in meters.
         scale should be meters per pixel; pass scale as float or int
@@ -84,8 +84,8 @@ class Prediction(object):
         """
         self.scale = scale
         return
-        
-    
+
+
     def show(self, threshold=.5, include_ticks=True, save_plot=False):
         """Displays the input image with the predicted craters
         overlaid.
@@ -120,7 +120,7 @@ class Prediction(object):
         ax.set_title('Crater detections for {}'.format(self.__name__))
         plt.axis('on')
         plt.show();
-        
+
     def show_detection(self, remove_ticks=True):
         """Plots the detection map alongside the input image."""
         fig, ax = plt.subplots(ncols=2, figsize=(9, 6))
@@ -129,7 +129,7 @@ class Prediction(object):
         if remove_ticks:
             ax[0], ax[1] = util_functions.remove_ticks(ax[0]), util_functions.remove_ticks(ax[1])
         plt.show();
-        
+
     def to_csv(self, filepath, likelihoods=False, index=False):
         """Creates a csv file with predictions. If likelihoods
         is True, a likelihoods column is added to the csv file.
@@ -139,8 +139,6 @@ class Prediction(object):
             return
         df = self.proposals
         if not likelihoods:
-            df = df[['x', 'y', 'diameter']]
+            df = df[['lat', 'long', 'diameter']]
         df.to_csv(filepath, index=index)
         return
-        
-            
