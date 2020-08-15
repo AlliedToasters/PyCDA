@@ -122,7 +122,7 @@ class TestImageFlow(unittest.TestCase):
 
     def test_custom_classifier(self):
         new_cda = pycda.CDA(extractor='watershed')
-        cls = CustomClassifier('./pycda/models/classifier_12x12_2.h5', crater_pixels=6)
+        cls = CustomClassifier('./pycda/models/no_channels_model.h5', crater_pixels=6)
         new_cda.classifier = cls
         image = get_sample_image()
         third_pred = new_cda.get_prediction(image)
