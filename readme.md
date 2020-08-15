@@ -16,7 +16,7 @@ pip install pycda
 
 ### Prerequisites
 
-PyCDA currently supports Python 3.6; we recommend using a virtual environment or environment manager such as <a href='https://conda.io/docs/user-guide/install/index.html#regular-installation'>conda</a>, as PyCDA has not been tested on previous versions of its dependencies.
+PyCDA currently supports Python 3.5 and 3.6; we recommend using a virtual environment or environment manager such as <a href='https://conda.io/docs/user-guide/install/index.html#regular-installation'>conda</a>, as PyCDA has not been tested on previous versions of its dependencies.
 
 ### Installing
 
