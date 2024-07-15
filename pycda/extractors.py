@@ -3,7 +3,7 @@ import pandas as pd
 from skimage import measure
 from scipy import ndimage as ndi
 from scipy.ndimage import find_objects
-from skimage.morphology import watershed
+from skimage.segmentation import watershed
 from skimage.feature import peak_local_max
 from math import sqrt, pi
 from pycda.util_functions import update_progress
